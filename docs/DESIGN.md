@@ -49,8 +49,9 @@ Prompt (`SEE_PROMPT` in `ai_svc/see/prompts.py`):
 
 > You are the AI eyes of a visually impaired person. Describe the scene in front of you in one warm, specific
 > English sentence, no more than 25 words. Include: what objects are there, what colors, what mood. Do NOT
-> start with "I see"; just describe directly. If the image is blurry or unclear, reply exactly: "The image is
-> a bit blurry, please move closer." Output only the sentence.
+> start with "I see"; just describe directly. Always describe what is visible, even if the view is a close-up,
+> dim or only partly clear. Only if it is almost entirely unreadable (e.g. a covered lens or pure blur), reply
+> exactly: "The image is a bit blurry, please move closer." Output only the sentence.
 
 ### Provider switching
 
@@ -84,7 +85,7 @@ src/
 `useVisionLoop({ videoRef, isRunning })` runs a sequential loop, not a fixed timer:
 1. When `isRunning` becomes true: `getUserMedia({ video: { facingMode: 'environment' }, audio: false })`,
    attach the stream to the video, then start the loop.
-2. Loop: capture a 640x480 JPEG (quality 0.7) -> strip the data-URL prefix -> POST to
+2. Loop: capture a JPEG (longest side 768px, original aspect ratio kept, quality 0.8) -> strip the data-URL prefix -> POST to
    `${VITE_API_BASE_URL}/api/see` inside try/catch (caption "Looking..." while in flight) -> set the caption ->
    **speak and wait until the speech has ended** -> 500 ms pause -> capture the next frame.
 3. Because the next frame is only taken after the previous description has been spoken, speech never overlaps
