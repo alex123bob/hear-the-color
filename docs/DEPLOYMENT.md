@@ -27,11 +27,12 @@ Needed whenever the `/api/see` route or provider config changes.
 2. Edit the server's `.env` (keys live only here, never in the frontend):
 
    ```
-   AI_PROVIDER=openai            # or deepseek
-   OPENAI_API_KEY=...            # existing OpenAI settings keep working
-   # DEEPSEEK_API_KEY=...        # only when AI_PROVIDER=deepseek
+   AI_PROVIDER=deepseek          # default; or openai
+   DEEPSEEK_API_KEY=...          # required for deepseek
+   # OPENAI_API_KEY=...          # only when AI_PROVIDER=openai
    ```
 
+   `/api/see` ignores the `OPENAI_API_BASE` / `X-PP-TOKEN` proxy settings used by other routes.
    Optional: `OPENAI_BASE_URL`, `OPENAI_MODEL`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`
    (all variables and defaults: [`PP-AI-Service/docs/SEE_API.md`](../../PP-AI-Service/docs/SEE_API.md)).
    The chosen model must accept image input, otherwise `/api/see` returns 500.
@@ -109,5 +110,5 @@ Open <https://lijialab.com/hear-the-color/> on your phone. Hard-refresh if you s
 ## Rolling back
 
 - **Frontend:** `git checkout <previous-commit>` on the server and run `npm run build` again.
-- **Provider:** set `AI_PROVIDER=openai` in the backend `.env` and run `./stop.sh && ./start.sh`.
+- **Provider:** set `AI_PROVIDER=openai` (needs `OPENAI_API_KEY` and OpenAI access from the server's region) in the backend `.env` and run `./stop.sh && ./start.sh`.
 - **Remove the app:** delete the Nginx `location /hear-the-color` blocks and reload; `/api/*` is unaffected.

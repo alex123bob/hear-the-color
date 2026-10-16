@@ -59,7 +59,7 @@ Open:
 | `VITE_API_BASE_URL` | frontend `.env.local` | Backend origin. **Leave empty** when the page is served from the same domain as the API (local dev and the Nginx deployment). Set it (e.g. `https://lijialab.com`) only for a separate static host such as Vercel/Firebase. |
 | `DEV_PROXY_TARGET` | frontend `.env.local` | Backend for the dev proxy (default `http://localhost:8000`) |
 | `?lang=xx` | page URL | Override the detected language for testing, e.g. `http://localhost:5173/?lang=ja` |
-| `AI_PROVIDER` | backend `.env` | `openai` (default) or `deepseek`. Affects `/api/see` only. |
+| `AI_PROVIDER` | backend `.env` | `deepseek` (default) or `openai`. Affects `/api/see` only. |
 
 Provider keys, models and base URLs are backend settings, listed in
 [`PP-AI-Service/.env.example`](../PP-AI-Service/.env.example). **API keys live only in the backend `.env`; the

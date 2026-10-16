@@ -59,13 +59,16 @@ Prompt (`SEE_PROMPT_TEMPLATE` in `ai_svc/see/prompts.py`; `{language}` is filled
 
 | Variable | Default |
 | --- | --- |
-| `AI_PROVIDER` | `openai` (or `deepseek`) |
-| `OPENAI_API_KEY`, `OPENAI_BASE_URL` (falls back to legacy `OPENAI_API_BASE`), `OPENAI_MODEL` | `gpt-4o-mini` |
+| `AI_PROVIDER` | `deepseek` (or `openai`) |
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL` (official endpoint if unset), `OPENAI_MODEL` | `gpt-4o-mini` |
 | `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL` | `https://api.deepseek.com`, `deepseek-flash` |
 
 Both providers speak the OpenAI chat-completions format, so only base URL, key and model differ.
-Trailing slashes on base URLs are stripped. The `x-pp-token` header (for the OpenAI proxy) is sent only to
-OpenAI.
+Trailing slashes on base URLs are stripped. For DeepSeek, thinking is disabled in the request: its hidden
+reasoning tokens count against `max_tokens` and previously left descriptions empty. The service sends no custom
+headers and never reads `OPENAI_API_BASE` or `X-PP-TOKEN`: those belong to the proxy setup of other apps, and
+`/api/see` talks directly to the provider. DeepSeek is the default because OpenAI is not reachable from the
+server's region.
 
 Compatibility rules:
 - Existing routes and `ai_svc/openai.py` are untouched; `/api/image` keeps using OpenAI as before.
