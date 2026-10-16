@@ -2,7 +2,7 @@
 
 A web-based AI vision assistant for visually impaired users. Raise your phone, the browser opens the
 camera, a frame is captured every 4 seconds and sent to the backend, which asks a multimodal LLM for a
-warm, specific one-sentence Chinese description. The frontend reads it aloud with browser TTS.
+warm, specific one-sentence English description. The frontend reads it aloud with browser TTS.
 
 - Frontend: Vite + React 18 + TypeScript (this repo, statically hosted)
 - Backend: the existing `PP-AI-Service` Flask app, with a new `POST /api/see` route.
