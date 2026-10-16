@@ -12,7 +12,7 @@ Background: [DESIGN.md](DESIGN.md). Full Nginx config for reference: [nginx.conf
 Day-to-day usage: [README](../README.md).
 
 **Checklist (first deployment):** backend pulled and restarted (§1) → Nginx block added and reloaded (§2) →
-`./scripts/release.sh` on your laptop, then `./server-deploy.sh` on the server (§3) → open the page on a phone.
+`npm run release` on your laptop, push, run the workflow on GitHub, then `./server-deploy.sh` on the server (§3) → open the page on a phone.
 
 ## 1. Backend (PP-AI-Service)
 
@@ -83,14 +83,19 @@ Nginx (user `www-data`) must be able to read `dist/`, so every parent folder nee
 
 The server needs **no Node**: releases are built by GitHub Actions and the server only downloads the result.
 
-**On your laptop** (clean `main`, `gh` or git push access):
+**On your laptop** (clean `main`):
 
 ```bash
-./scripts/release.sh            # patch bump, e.g. 0.1.0 -> 0.1.1; or: ./scripts/release.sh minor|major
+npm run release                 # patch bump, e.g. 0.1.0 -> 0.1.1; or: npm run release minor|major
 ```
 
-It checks the build, bumps the version, tags `v<version>`, and pushes. The `release` workflow then builds the
-app and publishes `hear-the-color-dist.tar.gz` as a GitHub Release asset (watch it with `gh run watch`).
+It pulls, checks that the build works, bumps the version in `package.json` / `package-lock.json` and commits
+"Release vX.Y.Z". It does **not** tag or push, so it works with whichever tool you push with:
+
+1. Push the commit (GitHub Desktop is fine).
+2. On GitHub: **Actions -> release -> Run workflow**, branch `main`, tag field empty. The workflow builds the
+   app, creates the `vX.Y.Z` tag on that commit and publishes `hear-the-color-dist.tar.gz` as a GitHub Release
+   asset. (Pushing a `v*` tag by hand also triggers it, but you don't need to.)
 
 **On the server** (needs only `curl` and `tar`):
 

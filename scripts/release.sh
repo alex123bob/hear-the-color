@@ -1,6 +1,7 @@
 #!/bin/bash
-# Run on your laptop: bump the version, tag it and push. The "release" GitHub Action then builds dist/ and
-# publishes it as a release asset.
+# Run on your laptop: check the build, bump the version and commit it. It does NOT tag or push:
+#   1. push the commit with GitHub Desktop
+#   2. GitHub -> Actions -> release -> Run workflow (it creates the v<version> tag and the release)
 # Usage: ./scripts/release.sh [patch|minor|major]   (default: patch)
 
 set -euo pipefail
@@ -22,12 +23,13 @@ git pull --ff-only
 npm ci --silent
 npm run build >/dev/null
 
-# Updates package.json / package-lock.json, commits, and creates the v<version> tag
-npm version "$BUMP" -m "Release v%s"
-git push origin main --follow-tags
+# Bump package.json / package-lock.json only; the tag is created later by the GitHub Action
+VERSION=$(npm version "$BUMP" --no-git-tag-version | tr -d 'v')
+git add package.json package-lock.json
+git commit -q -m "Release v$VERSION"
 
-TAG="v$(node -p "require('./package.json').version")"
 echo
-echo "Pushed $TAG. The GitHub Action is building it:"
-echo "  gh run watch   (or open https://github.com/alex123bob/hear-the-color/actions)"
-echo "When it is done, run on the server:  ./scripts/server-deploy.sh"
+echo "Committed 'Release v$VERSION'. Next:"
+echo "  1. Push it with GitHub Desktop"
+echo "  2. GitHub -> Actions -> release -> Run workflow (branch: main, tag: leave empty)"
+echo "  3. On the server:  ./server-deploy.sh"

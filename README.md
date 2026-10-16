@@ -51,7 +51,7 @@ Open:
 | `npm run dev:https` | Same, with a self-signed HTTPS certificate, needed for the camera on a phone over LAN |
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
-| `./scripts/release.sh [patch\|minor\|major]` | Bump version, tag and push; GitHub Actions publishes the build as a release |
+| `npm run release [patch\|minor\|major]` | Check the build, bump the version and commit it (no tag, no push). Then push with GitHub Desktop and run the `release` workflow on GitHub |
 | `./scripts/server-deploy.sh [tag]` | Run on the server: download a release and make it live (also used for rollback) |
 
 ## Configuration
@@ -73,7 +73,8 @@ Production serves the static build from Nginx at `/hear-the-color/` on the same 
 is no CORS and the existing HTTPS certificate is reused.
 
 ```bash
-./scripts/release.sh          # laptop: bump version, tag, push -> GitHub Action builds a release
+npm run release               # laptop: check build, bump version, commit
+# push with GitHub Desktop, then GitHub -> Actions -> release -> Run workflow (builds the release)
 ./server-deploy.sh            # server: download the latest release and switch to it (no Node needed)
 ```
 
