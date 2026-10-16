@@ -8,6 +8,12 @@ Production runs on the GCP server at `https://lijialab.com`:
 Page and API share one origin, so there is no CORS and the existing HTTPS certificate covers both.
 Mobile browsers only allow camera access over HTTPS, which is why the real deployment matters for testing.
 
+Background: [DESIGN.md](DESIGN.md). Full Nginx config for reference: [nginx.conf.example](nginx.conf.example).
+Day-to-day usage: [README](../README.md).
+
+**Checklist (first deployment):** backend pulled and restarted (§1) → Nginx block added and reloaded (§2) →
+`./deploy.sh` (§3) → open the page on a phone.
+
 ## 1. Backend (PP-AI-Service)
 
 Needed whenever the `/api/see` route or provider config changes.
@@ -26,7 +32,8 @@ Needed whenever the `/api/see` route or provider config changes.
    # DEEPSEEK_API_KEY=...        # only when AI_PROVIDER=deepseek
    ```
 
-   Optional: `OPENAI_BASE_URL`, `OPENAI_MODEL`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`.
+   Optional: `OPENAI_BASE_URL`, `OPENAI_MODEL`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`
+   (all variables and defaults: [`PP-AI-Service/docs/SEE_API.md`](../../PP-AI-Service/docs/SEE_API.md)).
    The chosen model must accept image input, otherwise `/api/see` returns 500.
 
 3. Restart Flask:
@@ -45,7 +52,8 @@ No Nginx change is needed for the backend; `location /api` already proxies to `l
 
 ## 2. Nginx (one-time)
 
-Add to the `server { listen 443 ssl; ... }` block of the Nginx config, next to `/yvonne` and `/home/`
+Add to the `server { listen 443 ssl; ... }` block of the Nginx config (see the marked section in
+[nginx.conf.example](nginx.conf.example)), next to `/yvonne` and `/home/`
 (it must be inside this block so it takes priority over the catch-all `location /`):
 
 ```nginx
@@ -90,5 +98,11 @@ Open <https://lijialab.com/hear-the-color/> on your phone.
 | 403 / 404 on the page | Nginx user can't read the folder: check permissions on `/home/alex123bobo` and `hear-the-color` |
 | Page loads, camera refused | Not on HTTPS, or camera permission denied in the browser |
 | Caption says "Network seems to have an issue" | `/api/see` unreachable or returned 5xx: check `~/ppaiservice.log` and the provider key/model |
-| Caption says "Too many requests..." | Rate limit hit (20 requests/minute per IP) |
+| Caption says "Too many requests, please wait a moment" | Rate limit hit (20 requests/minute per IP) |
 | Works for OpenAI, fails for DeepSeek | The DeepSeek model doesn't accept images |
+
+## Rolling back
+
+- **Frontend:** check out the previous commit and run `./deploy.sh` again.
+- **Provider:** set `AI_PROVIDER=openai` in the backend `.env` and run `./stop.sh && ./start.sh`.
+- **Remove the app:** delete the Nginx `location /hear-the-color` blocks and reload; `/api/*` is unaffected.

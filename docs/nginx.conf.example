@@ -1,0 +1,88 @@
+# Reference copy of the production Nginx config on the GCP server (lijialab.com).
+# The /hear-the-color/ block is the one this project needs; /api is shared with PP-AI-Service.
+
+server {
+    listen 80;
+    server_name lijialab.com www.lijialab.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name lijialab.com www.lijialab.com;
+
+    ssl_certificate /etc/letsencrypt/live/lijialab.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lijialab.com/privkey.pem;
+
+    set $dictionary /home/alex123bobo/advanced-english-dictionary/clients/web/dist;
+
+    location /yvonne {
+        alias /home/alex123bobo/yvonne;
+        index index.html index.htm;
+        try_files $uri $uri/ /yvonne/index.html;
+    }
+    location ~ ^/(cache-manager|privacy|metrics)(\.html)?$ {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── Home portal ────────────────────────────────────────────
+    location = /home {
+        return 301 /home/;
+    }
+    location /home/ {
+        alias $dictionary/home/;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+
+    # ── Word of the Day ────────────────────────────────────────
+    location = /word-of-the-day {
+        return 301 /word-of-the-day/;
+    }
+    location /word-of-the-day/ {
+        alias $dictionary/word-of-the-day/;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+
+    # ── Hear the Color (static frontend, see docs/DEPLOYMENT.md) ───
+    location = /hear-the-color {
+        return 301 /hear-the-color/;
+    }
+    location /hear-the-color/ {
+        alias /home/alex123bobo/hear-the-color/;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+
+    location / {
+        root $dictionary;
+        index index.html index.htm;
+        try_files $uri /index.html;
+    }
+    location /api {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location /openai-proxy/ {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        gzip off;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        client_max_body_size 100m;
+    }
+}
