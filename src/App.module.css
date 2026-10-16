@@ -5,7 +5,8 @@
   height: 100%;
   background: #000;
   color: #fff;
-  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 22px; /* body text is never smaller than 22px */
 }
 
 .app {
@@ -42,8 +43,28 @@
 }
 
 .button:focus-visible {
-  outline: 4px solid #ffd400;
+  outline: 3px solid #ffd400;
   outline-offset: 3px;
+}
+
+/* Visible pressed state for touch */
+.button:active {
+  background: #ffd400;
+  border-color: #ffd400;
+  transform: scale(0.96);
+}
+
+/* Visually hidden, still read by screen readers */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .caption {

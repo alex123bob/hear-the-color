@@ -99,13 +99,21 @@ as a safety net for browsers that never fire `onend`. `SpeechSynthesisUtterance`
 
 ### UI and accessibility
 
-- Black background, white text, very high contrast; CSS Modules only.
-- Controls at least 48px tall, text at least 22px. Button labels: "Start Listening" / "Stop".
-- Fullscreen camera, control button top-right, caption fixed at the bottom on a semi-transparent black panel
-  with 24px padding.
-- The caption is an `aria-live="polite"` region so screen readers announce changes.
-- Honest limitation: with a screen reader running, the caption may be announced twice (screen reader plus
-  the app's own TTS).
+- Pure black background, pure white text (21:1). The caption panel is 75% black over the camera; even over a
+  pure-white scene that is about 10:1, still above WCAG AAA (7:1). Body text is 22px, the caption 26px.
+- The button is at least 56px tall. Labels: "Start Listening" / "Stop". Its `aria-label` describes function and
+  result, e.g. "Start listening. The phone will describe the scene in front of you."
+- Layout: fullscreen camera, control button top-right, caption fixed at the bottom with 24px padding.
+- Structure for screen readers: `<html lang="en">`, content in `<main role="main">`, a visually hidden `<h1>`
+  and a one-line intro (`.srOnly`). The `<video>` is `aria-hidden` because it is purely visual.
+- Keyboard: the button is a native `<button>`, so it is Tab-reachable and works with Enter/Space; the default
+  focus behavior is kept and `:focus-visible` adds a 3px gold outline.
+- Touch: `navigator.vibrate(50)` on press (where supported; iOS Safari has no vibration API) plus a visible
+  `:active` state (gold background, slight scale-down).
+- **Caption vs speech:** the caption is `role="status"` with `aria-live="off"`, so screen readers do not
+  announce it. The app speaks only the AI description (via TTS); every other message ("Looking...", network
+  errors, camera errors) is shown with `setCaption()` but never spoken. This avoids double-speaking. All user
+  feedback goes through the caption; there is no `alert()` or toast.
 
 ### Build
 

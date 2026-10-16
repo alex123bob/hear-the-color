@@ -17,8 +17,6 @@ interface Options {
 
 export function useVisionLoop({ videoRef, isRunning }: Options) {
   const [caption, setCaption] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
@@ -39,7 +37,8 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
 
     // Send one frame to the backend; returns the description, or null after showing an error caption
     const describe = async (image: string): Promise<string | null> => {
-      setIsLoading(true)
+      // Status messages are shown but never spoken; only the AI description goes to speak()
+      setCaption('Looking...')
       try {
         const res = await fetch(`${API_BASE}/api/see`, {
           method: 'POST',
@@ -56,8 +55,6 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         )
       } catch {
         if (!cancelled) setCaption('Network seems to have an issue')
-      } finally {
-        if (!cancelled) setIsLoading(false)
       }
       return null
     }
@@ -100,11 +97,10 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
           video.srcObject = stream
           await video.play().catch(() => undefined)
         }
-        setError('')
         void loop()
       } catch {
         if (!cancelled) {
-          setError('Cannot open the camera. Check permissions (phones require HTTPS)')
+          setCaption('Cannot open the camera. Check permissions (phones require HTTPS)')
         }
       }
     }
@@ -117,11 +113,10 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
       if (videoRef.current) videoRef.current.srcObject = null
-      setIsLoading(false)
       // Cancelling also fires the pending speak() promise, so the loop can exit
       stopSpeaking()
     }
   }, [isRunning, videoRef])
 
-  return { caption, isLoading, error }
+  return { caption }
 }
