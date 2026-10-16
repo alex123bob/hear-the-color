@@ -7,6 +7,8 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.DEV_PROXY_TARGET || 'http://localhost:8000'
   return {
     plugins: [react()],
+    // Relative asset paths so the build works under any Nginx subpath (e.g. /hear-the-color/)
+    base: './',
     server: {
       host: true, // Listen on 0.0.0.0 so phones / LAN IPs can reach it
       proxy: { '/api': { target: proxyTarget, changeOrigin: true } },

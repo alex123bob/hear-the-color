@@ -64,14 +64,37 @@ Change `AI_PROVIDER` in the backend `.env` and restart Flask:
 `AI_PROVIDER` only affects `/api/see`; `/api/image` always uses OpenAI. The chosen model must accept
 image input, otherwise `/api/see` returns 500.
 
-### Frontend
+### Frontend (same Nginx server, same domain)
 
-```bash
-npm run build
-vercel --prod        # or: firebase deploy
-```
+The frontend is a static build served by Nginx under `/hear-the-color/`, the same way the dictionary app
+is served. Because the page and `/api/see` share one origin, leave `VITE_API_BASE_URL` empty
+(no CORS, and the existing HTTPS certificate covers it).
 
-Set `VITE_API_BASE_URL` in the hosting platform's environment (it is injected at build time).
+1. One-time: add this block to the `server { listen 443 ssl; ... }` section of the Nginx config
+   (next to `/yvonne` and `/home/`), then `sudo nginx -t && sudo systemctl reload nginx`:
+
+   ```nginx
+   location = /hear-the-color {
+       return 301 /hear-the-color/;
+   }
+   location /hear-the-color/ {
+       alias /home/alex123bobo/hear-the-color/;
+       index index.html;
+       try_files $uri $uri/ =404;
+   }
+   ```
+
+2. Every release, from this repo:
+
+   ```bash
+   DEPLOY_TARGET=user@your-server:/home/alex123bobo/hear-the-color/ ./deploy.sh
+   ```
+
+   This runs `npm run build` and rsyncs `dist/` to the server. No Flask or Nginx restart is needed.
+
+3. Open <https://lijialab.com/hear-the-color/> on your phone.
+
+(Alternative: `vercel --prod` / `firebase deploy`, with `VITE_API_BASE_URL=https://lijialab.com` set at build time.)
 
 ## Reminders
 
