@@ -13,7 +13,7 @@ This document describes what is built and why. For setup see the [README](../REA
 Phone browser ──(camera frame, base64 JPEG)──▶ Nginx ──▶ PP-AI-Service (Flask)  POST /api/see
       ▲                                     (HTTPS)            │
       │                                                        ▼
-      └────────── { "text": "..." } ◀──────────────  ai_svc.openai.vision()  ──▶ OpenAI / DeepSeek
+      └────────── { "text": "..." } ◀──────────────  ai_svc.see.SeeService   ──▶ OpenAI / DeepSeek
       │
       ▼
  speechSynthesis (device TTS)
@@ -22,7 +22,7 @@ Phone browser ──(camera frame, base64 JPEG)──▶ Nginx ──▶ PP-AI-S
 - **Frontend** (this repo): Vite + React 18 + TypeScript, plain CSS Modules, no UI library. Static build,
   served by the same Nginx as the backend under `/hear-the-color/`.
 - **Backend** ([PP-AI-Service](../../PP-AI-Service)): the existing Flask app. No new service. All backend
-  changes live in that repo (`app.py`, `ai_svc/openai.py`).
+  changes live in that repo, in a self-contained module `ai_svc/see/` registered as a blueprint in `app.py`.
 - **Voice** is produced entirely in the browser (Web Speech API). The backend only returns text.
 
 ## Backend
@@ -40,12 +40,12 @@ Request: `{ "image": "<base64 JPEG, WITHOUT the data:image/jpeg;base64, prefix>"
 
 Behavior:
 1. Validate `image`, then build `data:image/jpeg;base64,<image>`.
-2. Call the existing `ai_svc.openai.vision(images=[data_url], prompt_text=SEE_PROMPT, max_tokens=200)`.
-   The HTTP request is not reimplemented.
+2. `SeeService.describe()` calls the provider's OpenAI-compatible chat-completions endpoint with the prompt
+   and the image (`max_tokens=200`), using the official `openai` client already in the project.
 3. Rate limit: in-memory sliding window, keyed by `X-Real-IP` (set by Nginx), falling back to the socket
    address. Per process and reset on restart, which is fine for a demo.
 
-Prompt (`SEE_PROMPT` in `app.py`):
+Prompt (`SEE_PROMPT` in `ai_svc/see/prompts.py`):
 
 > You are the AI eyes of a visually impaired person. Describe the scene in front of you in one warm, specific
 > English sentence, no more than 25 words. Include: what objects are there, what colors, what mood. Do NOT
@@ -54,7 +54,7 @@ Prompt (`SEE_PROMPT` in `app.py`):
 
 ### Provider switching
 
-`ai_svc.openai.get_vision_provider()` returns `(base_url, api_key, model)` based on `AI_PROVIDER`:
+`ai_svc.see.provider.get_vision_provider()` returns `(base_url, api_key, model)` based on `AI_PROVIDER`:
 
 | Variable | Default |
 | --- | --- |
@@ -67,8 +67,8 @@ Trailing slashes on base URLs are stripped. The `x-pp-token` header (for the Ope
 OpenAI.
 
 Compatibility rules:
-- `/api/image` and other existing routes are unchanged. `/api/image` is pinned to OpenAI
-  (`provider='openai'`) and ignores `AI_PROVIDER`.
+- Existing routes and `ai_svc/openai.py` are untouched; `/api/image` keeps using OpenAI as before.
+  `AI_PROVIDER` only affects `/api/see`.
 - The chosen model must accept image input, otherwise `/api/see` returns 500.
 
 ## Frontend
