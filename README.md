@@ -51,6 +51,8 @@ Open:
 | `npm run dev:https` | Same, with a self-signed HTTPS certificate, needed for the camera on a phone over LAN |
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
+| `./scripts/release.sh [patch\|minor\|major]` | Bump version, tag and push; GitHub Actions publishes the build as a release |
+| `./scripts/server-deploy.sh [tag]` | Run on the server: download a release and make it live (also used for rollback) |
 
 ## Configuration
 
@@ -71,11 +73,11 @@ Production serves the static build from Nginx at `/hear-the-color/` on the same 
 is no CORS and the existing HTTPS certificate is reused.
 
 ```bash
-# on the server, in this repo
-git pull && npm install && npm run build
+./scripts/release.sh          # laptop: bump version, tag, push -> GitHub Action builds a release
+./server-deploy.sh            # server: download the latest release and switch to it (no Node needed)
 ```
 
-That is the whole release: Nginx serves the repo's `dist/` folder directly. First-time setup (Nginx block,
+First-time setup (Nginx block,
 backend restart) and troubleshooting: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Docs

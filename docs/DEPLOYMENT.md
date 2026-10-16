@@ -12,7 +12,7 @@ Background: [DESIGN.md](DESIGN.md). Full Nginx config for reference: [nginx.conf
 Day-to-day usage: [README](../README.md).
 
 **Checklist (first deployment):** backend pulled and restarted (§1) → Nginx block added and reloaded (§2) →
-`git pull && npm install && npm run build` on the server (§3) → open the page on a phone.
+`./scripts/release.sh` on your laptop, then `./server-deploy.sh` on the server (§3) → open the page on a phone.
 
 ## 1. Backend (PP-AI-Service)
 
@@ -81,18 +81,36 @@ Nginx (user `www-data`) must be able to read `dist/`, so every parent folder nee
 
 ## 3. Frontend (every release)
 
-On the server, clone the repo once (e.g. to `/home/alex123bobo/hear-the-color`), then for each release:
+The server needs **no Node**: releases are built by GitHub Actions and the server only downloads the result.
+
+**On your laptop** (clean `main`, `gh` or git push access):
 
 ```bash
-cd /home/alex123bobo/hear-the-color
-git pull
-npm install        # only needed when package.json changed
-npm run build      # writes dist/, which Nginx serves immediately; no reload needed
+./scripts/release.sh            # patch bump, e.g. 0.1.0 -> 0.1.1; or: ./scripts/release.sh minor|major
 ```
 
-Requires Node 18+ on the server. Leave `VITE_API_BASE_URL` **empty** for this setup (don't create a `.env.local`
-with it): the page then calls same-origin `/api/see`. A value set at build time would make it call that host
-instead.
+It checks the build, bumps the version, tags `v<version>`, and pushes. The `release` workflow then builds the
+app and publishes `hear-the-color-dist.tar.gz` as a GitHub Release asset (watch it with `gh run watch`).
+
+**On the server** (needs only `curl` and `tar`):
+
+```bash
+# first time: fetch the script (or git clone the repo, the script is in scripts/)
+mkdir -p /home/alex123bobo/hear-the-color && cd /home/alex123bobo/hear-the-color
+curl -fsSLO https://raw.githubusercontent.com/alex123bob/hear-the-color/main/scripts/server-deploy.sh
+chmod +x server-deploy.sh
+
+# every release
+./server-deploy.sh              # latest release, or: ./server-deploy.sh v0.2.0
+```
+
+Layout it maintains under `/home/alex123bobo/hear-the-color`: `releases/<tag>/` (the 5 newest are kept) and a
+`dist` symlink to the live one. Nginx serves `dist/`, so switching versions is instant and needs no reload.
+**Rollback** is just `./server-deploy.sh <older-tag>`. If `dist/` already exists as a real folder from an
+earlier manual copy, the script stops and tells you to move it away first.
+
+The workflow builds without `VITE_API_BASE_URL`, so the page calls the same origin it is served from. The repo
+is public, so no token is needed to download releases.
 
 Open <https://lijialab.com/hear-the-color/> on your phone. Hard-refresh if you still see an old version.
 
@@ -100,7 +118,7 @@ Open <https://lijialab.com/hear-the-color/> on your phone. Hard-refresh if you s
 
 | Symptom | Likely cause |
 | --- | --- |
-| Blank page, 404s for `assets/...` | Build was not made with `base: './'` (already set in `vite.config.ts`), or `alias` path in Nginx is wrong |
+| Blank page, 404s for `assets/...` | `alias` path in Nginx is wrong (it must end in `/dist/`, the symlink), or the release archive is empty |
 | 403 / 404 on the page | Nginx user can't read the folder: check permissions on `/home/alex123bobo` and `hear-the-color` |
 | Page loads, camera refused | Not on HTTPS, or camera permission denied in the browser |
 | Caption says "Network seems to have an issue" | `/api/see` unreachable or returned 5xx: check `~/ppaiservice.log` and the provider key/model |
@@ -109,6 +127,6 @@ Open <https://lijialab.com/hear-the-color/> on your phone. Hard-refresh if you s
 
 ## Rolling back
 
-- **Frontend:** `git checkout <previous-commit>` on the server and run `npm run build` again.
+- **Frontend:** `./server-deploy.sh <previous-tag>` on the server (instant, no rebuild).
 - **Provider:** set `AI_PROVIDER=openai` (needs `OPENAI_API_KEY` and OpenAI access from the server's region) in the backend `.env` and run `./stop.sh && ./start.sh`.
 - **Remove the app:** delete the Nginx `location /hear-the-color` blocks and reload; `/api/*` is unaffected.
