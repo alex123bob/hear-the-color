@@ -91,10 +91,12 @@ src/
 3. Because the next frame is only taken after the previous description has been spoken, speech never overlaps
    and requests never pile up. The cycle time is therefore model latency plus speaking time (no fixed 4 s).
 4. Status shown while waiting (all translated, shown in italics, never spoken):
-   "Starting the camera..." -> "Sending the photo..." -> after 1 s "The AI is looking at the scene..." ->
-   after 8 s "Still working on it, almost there...". The browser's `fetch` can't report when the upload
-   finishes, so the switch from sending to analyzing is a time-based estimate, not a real signal; the last
-   stage is a reassurance for slow responses. The hook exposes a caption `kind` (`status`, `result`, `error`)
+   "Starting the camera..." -> "Sending the photo..." -> (upload finished) "The AI is looking at the scene..." ->
+   8 s after the upload finished "Still working on it, almost there...". The request is made with axios (XHR under the hood), whose
+   `onUploadProgress` reports when the whole body has left the browser, so "analyzing" is a real signal. It
+   means the bytes were handed to the network, not that the server has them (only the response confirms that);
+   for a ~100 KB frame there may be just one or two progress events. The last stage is a reassurance for slow
+   responses and is timed from the end of the upload. No stage is a time-based guess. Stop or unmount aborts a request that is still in flight. The hook exposes a caption `kind` (`status`, `result`, `error`)
    so the UI can style the AI description differently from progress messages.
 5. Failure: caption "Network seems to have an issue" (or "Too many requests..." on 429), then retry after 4 s.
 6. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
@@ -130,8 +132,8 @@ switch also mutes speech.
 
 `vite.config.ts`: `@vitejs/plugin-react`, `build.target: 'es2020'`, `minify: 'esbuild'`, no sourcemaps,
 `base: './'` (works under any subpath). The dev server listens on `0.0.0.0` and proxies `/api` to the local
-Flask app. Dependencies are limited to react, react-dom, vite, typescript and @vitejs/plugin-react (plus the
-React type packages that `tsc` needs).
+Flask app. Runtime dependencies: react, react-dom and axios (used for upload-progress events). Dev: vite,
+typescript, @vitejs/plugin-react, @vitejs/plugin-basic-ssl (HTTPS dev mode) and the React type packages.
 
 ## Decisions and non-goals
 
