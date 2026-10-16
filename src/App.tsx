@@ -9,7 +9,7 @@ import styles from './App.module.css'
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isRunning, setIsRunning] = useState(false)
-  const { caption } = useVisionLoop({ videoRef, isRunning })
+  const { caption, kind } = useVisionLoop({ videoRef, isRunning })
 
   return (
     <main role="main" className={styles.app}>
@@ -19,7 +19,7 @@ export default function App() {
       <div className={styles.top}>
         <ControlButton isRunning={isRunning} onToggle={() => setIsRunning((v) => !v)} />
       </div>
-      <Caption text={caption} />
+      <Caption text={caption} kind={kind} />
     </main>
   )
 }

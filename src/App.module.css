@@ -47,6 +47,12 @@
   outline-offset: 3px;
 }
 
+/* Status messages (not the AI description) are italic and slightly dimmer in weight, not in contrast */
+.statusText {
+  font-style: italic;
+  font-weight: 300;
+}
+
 /* Visible pressed state for touch */
 .button:active {
   background: #ffd400;

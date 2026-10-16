@@ -8,7 +8,10 @@ export interface Messages {
   startLabel: string
   stopLabel: string
   idle: string
-  looking: string
+  cameraStarting: string
+  sending: string
+  analyzing: string
+  stillWorking: string
   networkError: string
   tooMany: string
   cameraError: string
@@ -21,7 +24,10 @@ const en: Messages = {
   startLabel: 'Start listening. The phone will describe the scene in front of you.',
   stopLabel: 'Stop listening. The phone will stop describing the scene in front of you.',
   idle: 'Tap "Start Listening" at the top right',
-  looking: 'Looking...',
+  cameraStarting: 'Starting the camera...',
+  sending: 'Sending the photo...',
+  analyzing: 'The AI is looking at the scene...',
+  stillWorking: 'Still working on it, almost there...',
   networkError: 'Network seems to have an issue',
   tooMany: 'Too many requests, please wait a moment',
   cameraError: 'Cannot open the camera. Check permissions (phones require HTTPS)',
@@ -37,7 +43,10 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: '开始聆听，点击后手机会描述眼前的场景',
     stopLabel: '停止聆听，点击后手机将不再描述眼前的场景',
     idle: '点击右上角“开始聆听”',
-    looking: '正在看……',
+    cameraStarting: '正在打开摄像头……',
+    sending: '正在发送照片……',
+    analyzing: 'AI 正在观察场景……',
+    stillWorking: '还在处理中，马上就好……',
     networkError: '网络好像出了点问题',
     tooMany: '请求太频繁，请稍等一下',
     cameraError: '无法打开摄像头，请检查权限（手机需要 HTTPS）',
@@ -49,7 +58,10 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: 'Empezar a escuchar. El teléfono describirá la escena que tienes delante.',
     stopLabel: 'Dejar de escuchar. El teléfono dejará de describir la escena que tienes delante.',
     idle: 'Toca "Empezar a escuchar" arriba a la derecha',
-    looking: 'Mirando...',
+    cameraStarting: 'Iniciando la cámara...',
+    sending: 'Enviando la foto...',
+    analyzing: 'La IA está mirando la escena...',
+    stillWorking: 'Todavía trabajando, ya casi...',
     networkError: 'Parece que hay un problema de red',
     tooMany: 'Demasiadas solicitudes, espera un momento',
     cameraError: 'No se puede abrir la cámara. Revisa los permisos (el teléfono requiere HTTPS)',
@@ -62,7 +74,10 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: 'Commencer à écouter. Le téléphone décrira la scène devant vous.',
     stopLabel: 'Arrêter l’écoute. Le téléphone cessera de décrire la scène devant vous.',
     idle: 'Touchez « Commencer à écouter » en haut à droite',
-    looking: 'Je regarde...',
+    cameraStarting: 'Démarrage de la caméra...',
+    sending: 'Envoi de la photo...',
+    analyzing: 'L’IA observe la scène...',
+    stillWorking: 'Toujours en cours, presque terminé...',
     networkError: 'Le réseau semble avoir un problème',
     tooMany: 'Trop de requêtes, patientez un instant',
     cameraError: 'Impossible d’ouvrir la caméra. Vérifiez les autorisations (HTTPS requis sur téléphone)',
@@ -75,7 +90,10 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: '聞き始める。スマートフォンが目の前の情景を説明します。',
     stopLabel: '聞くのを止める。スマートフォンは目の前の情景の説明をやめます。',
     idle: '右上の「聞き始める」をタップしてください',
-    looking: '見ています……',
+    cameraStarting: 'カメラを起動しています……',
+    sending: '写真を送信しています……',
+    analyzing: 'AIが情景を見ています……',
+    stillWorking: 'まだ処理中です。もう少しお待ちください……',
     networkError: 'ネットワークに問題があるようです',
     tooMany: 'リクエストが多すぎます。しばらくお待ちください',
     cameraError: 'カメラを開けません。権限を確認してください（スマートフォンではHTTPSが必要です）',

@@ -86,12 +86,18 @@ src/
 1. When `isRunning` becomes true: `getUserMedia({ video: { facingMode: 'environment' }, audio: false })`,
    attach the stream to the video, then start the loop.
 2. Loop: capture a JPEG (longest side 768px, original aspect ratio kept, quality 0.8) -> strip the data-URL prefix -> POST to
-   `${VITE_API_BASE_URL}/api/see` inside try/catch (caption "Looking..." while in flight) -> set the caption ->
+   `${VITE_API_BASE_URL}/api/see` inside try/catch (staged status captions while in flight, see below) -> set the caption ->
    **speak and wait until the speech has ended** -> 500 ms pause -> capture the next frame.
 3. Because the next frame is only taken after the previous description has been spoken, speech never overlaps
    and requests never pile up. The cycle time is therefore model latency plus speaking time (no fixed 4 s).
-4. Failure: caption "Network seems to have an issue" (or "Too many requests..." on 429), then retry after 4 s.
-5. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
+4. Status shown while waiting (all translated, shown in italics, never spoken):
+   "Starting the camera..." -> "Sending the photo..." -> after 1 s "The AI is looking at the scene..." ->
+   after 8 s "Still working on it, almost there...". The browser's `fetch` can't report when the upload
+   finishes, so the switch from sending to analyzing is a time-based estimate, not a real signal; the last
+   stage is a reassurance for slow responses. The hook exposes a caption `kind` (`status`, `result`, `error`)
+   so the UI can style the AI description differently from progress messages.
+5. Failure: caption "Network seems to have an issue" (or "Too many requests..." on 429), then retry after 4 s.
+6. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
    immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
 `speak.ts`: `speak(text)` returns a Promise that resolves on `end`/`error`/cancel, with a length-based timeout
@@ -116,7 +122,7 @@ switch also mutes speech.
 - Touch: `navigator.vibrate(50)` on press (where supported; iOS Safari has no vibration API) plus a visible
   `:active` state (gold background, slight scale-down).
 - **Caption vs speech:** the caption is `role="status"` with `aria-live="off"`, so screen readers do not
-  announce it. The app speaks only the AI description (via TTS); every other message ("Looking...", network
+  announce it. The app speaks only the AI description (via TTS); every other message (progress status, network
   errors, camera errors) is shown with `setCaption()` but never spoken. This avoids double-speaking. All user
   feedback goes through the caption; there is no `alert()` or toast.
 

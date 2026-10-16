@@ -9,7 +9,12 @@ const PAUSE_AFTER_SPEECH_MS = 500
 const RETRY_DELAY_MS = 4000
 // The video may not have a frame yet right after the camera starts
 const NO_FRAME_DELAY_MS = 300
+// The browser can't observe when an upload finishes, so the stages after "sending" are time-based estimates
+const ANALYZING_AFTER_MS = 1000
+const STILL_WORKING_AFTER_MS = 8000
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
+
+export type CaptionKind = 'status' | 'result' | 'error'
 
 interface Options {
   videoRef: RefObject<HTMLVideoElement>
@@ -17,7 +22,12 @@ interface Options {
 }
 
 export function useVisionLoop({ videoRef, isRunning }: Options) {
-  const [caption, setCaption] = useState('')
+  // kind: 'result' is the AI description (spoken); 'status' and 'error' are shown only, never spoken
+  const [caption, setCaptionState] = useState<{ text: string; kind: CaptionKind }>({
+    text: '',
+    kind: 'status',
+  })
+  const setCaption = (text: string, kind: CaptionKind = 'status') => setCaptionState({ text, kind })
   const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
@@ -39,7 +49,11 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
     // Send one frame to the backend; returns the description, or null after showing an error caption
     const describe = async (image: string): Promise<string | null> => {
       // Status messages are shown but never spoken; only the AI description goes to speak()
-      setCaption(t.looking)
+      setCaption(t.sending)
+      const timers = [
+        window.setTimeout(() => !cancelled && setCaption(t.analyzing), ANALYZING_AFTER_MS),
+        window.setTimeout(() => !cancelled && setCaption(t.stillWorking), STILL_WORKING_AFTER_MS),
+      ]
       try {
         const res = await fetch(`${API_BASE}/api/see`, {
           method: 'POST',
@@ -49,11 +63,11 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         const data = await res.json().catch(() => ({}))
         if (cancelled) return null
         if (res.ok && data.text) return data.text as string
-        setCaption(
-          res.status === 429 ? t.tooMany : t.networkError,
-        )
+        setCaption(res.status === 429 ? t.tooMany : t.networkError, 'error')
       } catch {
-        if (!cancelled) setCaption(t.networkError)
+        if (!cancelled) setCaption(t.networkError, 'error')
+      } finally {
+        timers.forEach((id) => window.clearTimeout(id))
       }
       return null
     }
@@ -71,7 +85,7 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         const text = await describe(image)
         if (cancelled) return
         if (text) {
-          setCaption(text)
+          setCaption(text, 'result')
           await speak(text)
           await sleep(PAUSE_AFTER_SPEECH_MS)
         } else {
@@ -81,6 +95,7 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
     }
 
     const start = async () => {
+      setCaption(t.cameraStarting)
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
@@ -99,7 +114,7 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         void loop()
       } catch {
         if (!cancelled) {
-          setCaption(t.cameraError)
+          setCaption(t.cameraError, 'error')
         }
       }
     }
@@ -117,5 +132,5 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
     }
   }, [isRunning, videoRef])
 
-  return { caption }
+  return { caption: caption.text, kind: caption.kind }
 }
