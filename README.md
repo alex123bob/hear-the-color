@@ -1,8 +1,9 @@
 # Hear the Color
 
 A web-based AI vision assistant for visually impaired users. Raise your phone: the browser opens the camera,
-captures a frame every 4 seconds, and sends it to the backend. A multimodal LLM returns one warm, specific
-sentence describing the scene, and the browser reads it aloud.
+captures a frame, and sends it to the backend. A multimodal LLM returns one warm, specific sentence
+describing the scene, and the browser reads it aloud. Only once the sentence has been fully spoken does it
+look again, so descriptions never talk over each other.
 
 Live at <https://lijialab.com/hear-the-color/> (after you deploy, see below).
 

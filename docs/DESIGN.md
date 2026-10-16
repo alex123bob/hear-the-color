@@ -81,18 +81,21 @@ src/
 └── lib/         capture.ts, speak.ts
 ```
 
-`useVisionLoop({ videoRef, isRunning })`:
+`useVisionLoop({ videoRef, isRunning })` runs a sequential loop, not a fixed timer:
 1. When `isRunning` becomes true: `getUserMedia({ video: { facingMode: 'environment' }, audio: false })`,
-   attach the stream to the video, run one tick immediately, then every 4000 ms.
-2. A tick captures a 640x480 JPEG (quality 0.7), strips the data-URL prefix, and POSTs it to
-   `${VITE_API_BASE_URL}/api/see` inside try/catch.
-3. Success: set the caption and speak it (cancelling any earlier speech). Failure: "Network seems to have an
-   issue" (or "Too many requests..." on 429). While a request is in flight the caption shows "Looking...".
-4. A tick is skipped while the previous request is still in flight, so requests never pile up.
-5. When `isRunning` becomes false or on unmount: clear the interval, stop all tracks, cancel speech.
-   Interval and stream live in refs to avoid stale closures.
+   attach the stream to the video, then start the loop.
+2. Loop: capture a 640x480 JPEG (quality 0.7) -> strip the data-URL prefix -> POST to
+   `${VITE_API_BASE_URL}/api/see` inside try/catch (caption "Looking..." while in flight) -> set the caption ->
+   **speak and wait until the speech has ended** -> 500 ms pause -> capture the next frame.
+3. Because the next frame is only taken after the previous description has been spoken, speech never overlaps
+   and requests never pile up. The cycle time is therefore model latency plus speaking time (no fixed 4 s).
+4. Failure: caption "Network seems to have an issue" (or "Too many requests..." on 429), then retry after 4 s.
+5. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
+   immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
-`speak.ts`: `SpeechSynthesisUtterance`, `lang = 'en-US'`, `rate = 1.05`, cancelling before speaking.
+`speak.ts`: `speak(text)` returns a Promise that resolves on `end`/`error`/cancel, with a length-based timeout
+as a safety net for browsers that never fire `onend`. `SpeechSynthesisUtterance`, `lang = 'en-US'`,
+`rate = 1.05`, cancelling before speaking.
 
 ### UI and accessibility
 
