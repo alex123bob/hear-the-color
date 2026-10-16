@@ -48,53 +48,21 @@ hosted on a different domain must set it to the backend URL.
 
 ## Deploy
 
-### Backend
-The new route is already in `PP-AI-Service/app.py`. Pull the code on the server and restart Flask.
-**No Nginx changes needed** (`location /api` already proxies to `localhost:8000`).
+Production serves the frontend from Nginx at `https://lijialab.com/hear-the-color/` and the backend at
+`/api/see` on the same domain. Full steps (backend restart, one-time Nginx block, `./deploy.sh`,
+troubleshooting) are in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
+Quick version:
+
+```bash
+# frontend, every release
+DEPLOY_TARGET=<user>@<server>:/home/alex123bobo/hear-the-color/ ./deploy.sh
+```
 
 ### Switching the model provider
-Change `AI_PROVIDER` in the backend `.env` and restart Flask:
-
-| Variable | Notes |
-| --- | --- |
-| `AI_PROVIDER` | `openai` (default) or `deepseek` |
-| `OPENAI_API_KEY`, `OPENAI_BASE_URL` (optional, falls back to the legacy `OPENAI_API_BASE`), `OPENAI_MODEL` (default `gpt-4o-mini`) | OpenAI |
-| `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL` (default `https://api.deepseek.com`), `DEEPSEEK_MODEL` (default `deepseek-flash`) | DeepSeek |
-
+Change `AI_PROVIDER` (`openai` default, or `deepseek`) in the backend `.env` and restart Flask.
 `AI_PROVIDER` only affects `/api/see`; `/api/image` always uses OpenAI. The chosen model must accept
-image input, otherwise `/api/see` returns 500.
-
-### Frontend (same Nginx server, same domain)
-
-The frontend is a static build served by Nginx under `/hear-the-color/`, the same way the dictionary app
-is served. Because the page and `/api/see` share one origin, leave `VITE_API_BASE_URL` empty
-(no CORS, and the existing HTTPS certificate covers it).
-
-1. One-time: add this block to the `server { listen 443 ssl; ... }` section of the Nginx config
-   (next to `/yvonne` and `/home/`), then `sudo nginx -t && sudo systemctl reload nginx`:
-
-   ```nginx
-   location = /hear-the-color {
-       return 301 /hear-the-color/;
-   }
-   location /hear-the-color/ {
-       alias /home/alex123bobo/hear-the-color/;
-       index index.html;
-       try_files $uri $uri/ =404;
-   }
-   ```
-
-2. Every release, from this repo:
-
-   ```bash
-   DEPLOY_TARGET=user@your-server:/home/alex123bobo/hear-the-color/ ./deploy.sh
-   ```
-
-   This runs `npm run build` and rsyncs `dist/` to the server. No Flask or Nginx restart is needed.
-
-3. Open <https://lijialab.com/hear-the-color/> on your phone.
-
-(Alternative: `vercel --prod` / `firebase deploy`, with `VITE_API_BASE_URL=https://lijialab.com` set at build time.)
+image input. All provider variables are listed in `PP-AI-Service/.env.example`.
 
 ## Reminders
 
