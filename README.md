@@ -34,8 +34,10 @@ No `.env.local` is needed: the frontend calls `/api/see` and the Vite dev server
 
 Open:
 - Desktop: <http://localhost:5173>. Browsers treat `localhost` as secure, so the camera works.
-- Phone on the same Wi-Fi: `http://<your-computer-ip>:5173`. The page loads, but **the camera is refused**
-  because browsers require HTTPS (or localhost). For real-phone testing use an HTTPS tunnel, e.g.
+- Phone on the same Wi-Fi: browsers only allow the camera on HTTPS (or localhost), so plain
+  `http://<your-computer-ip>:5173` shows "require https". Run `npm run dev:https` instead and open
+  `https://<your-computer-ip>:5173` (the URL is printed as "Network"). It uses a self-signed certificate, so
+  accept the browser warning once (Advanced -> Proceed). Alternatively use a tunnel such as
   `cloudflared tunnel --url http://localhost:5173`, or deploy to the server.
 
 ## Scripts
@@ -43,6 +45,7 @@ Open:
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Dev server (0.0.0.0:5173, `/api` proxied to Flask) |
+| `npm run dev:https` | Same, with a self-signed HTTPS certificate, needed for the camera on a phone over LAN |
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
 
