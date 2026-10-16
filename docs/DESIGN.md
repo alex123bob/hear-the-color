@@ -96,6 +96,10 @@ src/
 `speak.ts`: `speak(text)` returns a Promise that resolves on `end`/`error`/cancel, with a length-based timeout
 as a safety net for browsers that never fire `onend`. `SpeechSynthesisUtterance`, `lang = 'en-US'`,
 `rate = 1.05`, cancelling before speaking.
+Mobile autoplay: browsers only allow speech started from a user gesture, but the first description arrives
+after a network call. `unlockSpeech()` therefore speaks a silent utterance synchronously inside the
+Start tap, and `speak()` picks an explicit English voice when one is available. On iOS the ringer (silent)
+switch also mutes speech.
 
 ### UI and accessibility
 

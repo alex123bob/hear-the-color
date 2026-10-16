@@ -1,3 +1,19 @@
+// Mobile browsers (iOS Safari especially) only allow speech that starts inside a user gesture. Our real
+// speech happens seconds later, after a network call, so call this synchronously from the tap handler:
+// a silent utterance there unlocks speechSynthesis for the rest of the page's life.
+export function unlockSpeech() {
+  if (!('speechSynthesis' in window)) return
+  const utterance = new SpeechSynthesisUtterance(' ')
+  utterance.volume = 0
+  window.speechSynthesis.speak(utterance)
+}
+
+// Prefer an English voice explicitly; some mobile browsers have no default for the requested lang
+function pickVoice(): SpeechSynthesisVoice | undefined {
+  const voices = window.speechSynthesis.getVoices()
+  return voices.find((v) => v.lang === 'en-US') ?? voices.find((v) => v.lang.startsWith('en'))
+}
+
 // Read text aloud with the browser TTS. Resolves when the speech has finished (or failed / was cancelled),
 // so callers can wait for it before starting the next step.
 export function speak(text: string): Promise<void> {
@@ -12,6 +28,8 @@ export function speak(text: string): Promise<void> {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'en-US'
     utterance.rate = 1.05
+    const voice = pickVoice()
+    if (voice) utterance.voice = voice
 
     // Some browsers never fire onend; this length-based fallback keeps the caller from hanging forever
     const timer = window.setTimeout(done, Math.max(5000, text.length * 120 + 3000))
