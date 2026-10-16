@@ -1,0 +1,60 @@
+:global(html),
+:global(body),
+:global(#root) {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: #fff;
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.top {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+}
+
+.button {
+  min-height: 56px;
+  min-width: 140px;
+  padding: 0 24px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #000;
+  background: #fff;
+  border: 3px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: 4px solid #ffd400;
+  outline-offset: 3px;
+}
+
+.caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24px 24px max(24px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1.5;
+  min-height: 1.5em;
+}
