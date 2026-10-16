@@ -45,7 +45,6 @@ Open:
 | `npm run dev` | Dev server (0.0.0.0:5173, `/api` proxied to Flask) |
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
-| `./deploy.sh` | Build and rsync `dist/` to the server, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 
 ## Configuration
 
@@ -65,10 +64,12 @@ Production serves the static build from Nginx at `/hear-the-color/` on the same 
 is no CORS and the existing HTTPS certificate is reused.
 
 ```bash
-DEPLOY_TARGET=<user>@<server>:/home/alex123bobo/hear-the-color/ ./deploy.sh
+# on the server, in this repo
+git pull && npm install && npm run build
 ```
 
-First-time setup (Nginx block, backend restart) and troubleshooting: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+That is the whole release: Nginx serves the repo's `dist/` folder directly. First-time setup (Nginx block,
+backend restart) and troubleshooting: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Docs
 

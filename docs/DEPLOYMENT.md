@@ -12,7 +12,7 @@ Background: [DESIGN.md](DESIGN.md). Full Nginx config for reference: [nginx.conf
 Day-to-day usage: [README](../README.md).
 
 **Checklist (first deployment):** backend pulled and restarted (§1) → Nginx block added and reloaded (§2) →
-`./deploy.sh` (§3) → open the page on a phone.
+`git pull && npm install && npm run build` on the server (§3) → open the page on a phone.
 
 ## 1. Backend (PP-AI-Service)
 
@@ -61,7 +61,7 @@ location = /hear-the-color {
     return 301 /hear-the-color/;
 }
 location /hear-the-color/ {
-    alias /home/alex123bobo/hear-the-color/;
+    alias /home/alex123bobo/hear-the-color/dist/;
     index index.html;
     try_files $uri $uri/ =404;
 }
@@ -70,25 +70,29 @@ location /hear-the-color/ {
 Then:
 
 ```bash
-mkdir -p /home/alex123bobo/hear-the-color        # target folder, must be readable by nginx
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
+Nginx (user `www-data`) must be able to read `dist/`, so every parent folder needs the execute bit, e.g.
+`chmod o+x /home/alex123bobo`. If you'd rather not open your home folder, copy `dist/` to a path such as
+`/var/www/hear-the-color/` after each build and point `alias` there instead.
+
 ## 3. Frontend (every release)
 
-From this repo, on your machine:
+On the server, clone the repo once (e.g. to `/home/alex123bobo/hear-the-color`), then for each release:
 
 ```bash
-DEPLOY_TARGET=<user>@<server>:/home/alex123bobo/hear-the-color/ ./deploy.sh
+cd /home/alex123bobo/hear-the-color
+git pull
+npm install        # only needed when package.json changed
+npm run build      # writes dist/, which Nginx serves immediately; no reload needed
 ```
 
-`deploy.sh` runs `npm run build` and `rsync -avz --delete dist/` to the target, so the server folder becomes
-an exact copy of the build (don't point it at a folder holding other files). No server restart is needed.
+Requires Node 18+ on the server. Leave `VITE_API_BASE_URL` **empty** for this setup (don't create a `.env.local`
+with it): the page then calls same-origin `/api/see`. A value set at build time would make it call that host
+instead.
 
-Leave `VITE_API_BASE_URL` **empty** for this setup: the page then calls same-origin `/api/see`. A value set at
-build time would make it call that host instead.
-
-Open <https://lijialab.com/hear-the-color/> on your phone.
+Open <https://lijialab.com/hear-the-color/> on your phone. Hard-refresh if you still see an old version.
 
 ## Troubleshooting
 
@@ -103,6 +107,6 @@ Open <https://lijialab.com/hear-the-color/> on your phone.
 
 ## Rolling back
 
-- **Frontend:** check out the previous commit and run `./deploy.sh` again.
+- **Frontend:** `git checkout <previous-commit>` on the server and run `npm run build` again.
 - **Provider:** set `AI_PROVIDER=openai` in the backend `.env` and run `./stop.sh && ./start.sh`.
 - **Remove the app:** delete the Nginx `location /hear-the-color` blocks and reload; `/api/*` is unaffected.

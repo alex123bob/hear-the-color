@@ -55,7 +55,7 @@ server {
         return 301 /hear-the-color/;
     }
     location /hear-the-color/ {
-        alias /home/alex123bobo/hear-the-color/;
+        alias /home/alex123bobo/hear-the-color/dist/;
         index index.html;
         try_files $uri $uri/ =404;
     }
