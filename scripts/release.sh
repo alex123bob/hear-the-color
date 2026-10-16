@@ -2,7 +2,7 @@
 # Run on your laptop: check the build, bump the version and commit it. It does NOT tag or push:
 #   1. push the commit with GitHub Desktop
 #   2. GitHub -> Actions -> release -> Run workflow (it creates the v<version> tag and the release)
-# Usage: ./scripts/release.sh [patch|minor|major]   (default: patch)
+# Usage: npm run release [patch|minor|major]   (default: patch)
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
