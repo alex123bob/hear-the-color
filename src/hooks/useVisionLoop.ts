@@ -3,6 +3,7 @@ import axios from 'axios'
 import { captureFrame } from '../lib/capture'
 import { speak, stopSpeaking } from '../lib/speak'
 import { language, t } from '../lib/i18n'
+import { API_BASE } from '../lib/api'
 
 // Pause after the description has been spoken, before looking again
 const PAUSE_AFTER_SPEECH_MS = 500
@@ -12,7 +13,6 @@ const RETRY_DELAY_MS = 4000
 const NO_FRAME_DELAY_MS = 300
 // Shown if the AI is still working this long after the upload finished
 const STILL_WORKING_AFTER_MS = 8000
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
 
 export type CaptionKind = 'status' | 'result' | 'error'
 

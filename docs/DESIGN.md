@@ -23,7 +23,8 @@ Phone browser ──(camera frame, base64 JPEG)──▶ Nginx ──▶ PP-AI-S
   served by the same Nginx as the backend under `/hear-the-color/`.
 - **Backend** ([PP-AI-Service](../../PP-AI-Service)): the existing Flask app. No new service. All backend
   changes live in that repo, in a self-contained module `ai_svc/see/` registered as a blueprint in `app.py`.
-- **Voice** is produced entirely in the browser (Web Speech API). The backend only returns text.
+- **Voice** comes from OpenAI TTS through `POST /api/speak` (PP-AI-Service, `ai_svc/tts/`), played in an
+  `<audio>` element. If that fails the browser's built-in voice (Web Speech API) is used instead.
 
 ## Backend
 
@@ -105,13 +106,16 @@ src/
 6. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
    immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
-`speak.ts`: `speak(text)` returns a Promise that resolves on `end`/`error`/cancel, with a length-based timeout
-as a safety net for browsers that never fire `onend`. `SpeechSynthesisUtterance`, `lang = 'en-US'`,
-`rate = 1.05`, cancelling before speaking.
-Mobile autoplay: browsers only allow speech started from a user gesture, but the first description arrives
-after a network call. `unlockSpeech()` therefore speaks a silent utterance synchronously inside the
-Start tap, and `speak()` picks an explicit English voice when one is available. On iOS the ringer (silent)
-switch also mutes speech.
+`speak.ts`: `speak(text)` returns a Promise that resolves when playback has finished or was stopped.
+1. It POSTs the text to `/api/speak` (15 s timeout) and plays the returned MP3 on one shared `<audio>` element.
+2. If that fails (network, OpenAI unreachable, quota, playback refused) it speaks with the browser voice
+   (`SpeechSynthesisUtterance`, detected language, `rate = 1.05`, length-based timeout as a safety net).
+   After 2 failures in a row it stops trying the server until the next Start, so the loop isn't slowed down.
+3. `stopSpeaking()` aborts the request, pauses the audio, cancels browser speech and releases the waiting loop.
+
+Mobile autoplay: browsers only allow audio started from a user gesture, but the first description arrives
+after network calls. `unlockSpeech()` therefore plays a silent clip on the shared `<audio>` element and a
+silent utterance synchronously inside the Start tap. On iOS the ringer (silent) switch also mutes audio.
 
 ### UI and accessibility
 
@@ -152,7 +156,7 @@ typescript, @vitejs/plugin-react, @vitejs/plugin-basic-ssl (HTTPS dev mode) and 
   well-formed BCP-47 tags (letters and digits, short subtags) and maps the primary subtag to a language name;
   anything else becomes English. Spoken output needs a device voice for that language; if none exists, the
   browser falls back to its default voice, which may read the text poorly.
-- **Non-goals:** user accounts, storing images, server-side TTS, streaming/continuous video, offline use.
+- **Non-goals:** user accounts, storing images, streaming/continuous video, offline use.
   Images are sent per request and not stored by this project.
 
 ## Related files
