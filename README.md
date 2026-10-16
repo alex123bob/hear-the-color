@@ -3,7 +3,9 @@
 A web-based AI vision assistant for visually impaired users. Raise your phone: the browser opens the camera,
 captures a frame, and sends it to the backend. A multimodal LLM returns one warm, specific sentence
 describing the scene, and the browser reads it aloud. Only once the sentence has been fully spoken does it
-look again, so descriptions never talk over each other.
+look again, so descriptions never talk over each other. The language follows the browser/system language
+(UI text for English, Chinese, Spanish, French and Japanese; the description and voice follow any language),
+with English as the fallback.
 
 Live at <https://lijialab.com/hear-the-color/> (after you deploy, see below).
 
@@ -56,6 +58,7 @@ Open:
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | frontend `.env.local` | Backend origin. **Leave empty** when the page is served from the same domain as the API (local dev and the Nginx deployment). Set it (e.g. `https://lijialab.com`) only for a separate static host such as Vercel/Firebase. |
 | `DEV_PROXY_TARGET` | frontend `.env.local` | Backend for the dev proxy (default `http://localhost:8000`) |
+| `?lang=xx` | page URL | Override the detected language for testing, e.g. `http://localhost:5173/?lang=ja` |
 | `AI_PROVIDER` | backend `.env` | `openai` (default) or `deepseek`. Affects `/api/see` only. |
 
 Provider keys, models and base URLs are backend settings, listed in

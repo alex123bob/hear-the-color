@@ -1,4 +1,5 @@
 import styles from '../App.module.css'
+import { t } from '../lib/i18n'
 
 interface Props {
   text: string
@@ -10,7 +11,7 @@ export default function Caption({ text }: Props) {
   // (role="status" is an implicit polite live region; aria-live="off" turns that off.)
   return (
     <div className={styles.caption} role="status" aria-live="off">
-      {text || 'Tap "Start Listening" at the top right'}
+      {text || t.idle}
     </div>
   )
 }

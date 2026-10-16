@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { captureFrame } from '../lib/capture'
 import { speak, stopSpeaking } from '../lib/speak'
+import { language, t } from '../lib/i18n'
 
 // Pause after the description has been spoken, before looking again
 const PAUSE_AFTER_SPEECH_MS = 500
@@ -38,23 +39,21 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
     // Send one frame to the backend; returns the description, or null after showing an error caption
     const describe = async (image: string): Promise<string | null> => {
       // Status messages are shown but never spoken; only the AI description goes to speak()
-      setCaption('Looking...')
+      setCaption(t.looking)
       try {
         const res = await fetch(`${API_BASE}/api/see`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image }),
+          body: JSON.stringify({ image, lang: language }),
         })
         const data = await res.json().catch(() => ({}))
         if (cancelled) return null
         if (res.ok && data.text) return data.text as string
         setCaption(
-          res.status === 429
-            ? 'Too many requests, please wait a moment'
-            : 'Network seems to have an issue',
+          res.status === 429 ? t.tooMany : t.networkError,
         )
       } catch {
-        if (!cancelled) setCaption('Network seems to have an issue')
+        if (!cancelled) setCaption(t.networkError)
       }
       return null
     }
@@ -100,7 +99,7 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         void loop()
       } catch {
         if (!cancelled) {
-          setCaption('Cannot open the camera. Check permissions (phones require HTTPS)')
+          setCaption(t.cameraError)
         }
       }
     }

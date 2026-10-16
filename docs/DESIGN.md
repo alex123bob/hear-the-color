@@ -29,7 +29,7 @@ Phone browser ──(camera frame, base64 JPEG)──▶ Nginx ──▶ PP-AI-S
 
 ### `POST /api/see`
 
-Request: `{ "image": "<base64 JPEG, WITHOUT the data:image/jpeg;base64, prefix>" }`
+Request: `{ "image": "<base64 JPEG, WITHOUT the data:image/jpeg;base64, prefix>", "lang": "<optional BCP-47 tag, e.g. zh-CN>" }`
 
 | Status | Body | When |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Behavior:
 3. Rate limit: in-memory sliding window, keyed by `X-Real-IP` (set by Nginx), falling back to the socket
    address. Per process and reset on restart, which is fine for a demo.
 
-Prompt (`SEE_PROMPT` in `ai_svc/see/prompts.py`):
+Prompt (`SEE_PROMPT_TEMPLATE` in `ai_svc/see/prompts.py`; `{language}` is filled with the language name, shown here for English):
 
 > You are the AI eyes of a visually impaired person. Describe the scene in front of you in one warm, specific
 > English sentence, no more than 25 words. Include: what objects are there, what colors, what mood. Do NOT
@@ -132,7 +132,15 @@ React type packages that `tsc` needs).
 - **Same origin, no CORS.** The frontend is served from the backend's own domain. Flask CORS is still
   enabled, so a separate static host (Vercel/Firebase with `VITE_API_BASE_URL`) remains possible.
 - **No secrets in the frontend.** API keys exist only in the backend `.env`.
-- **English throughout** (UI text, code comments, prompt, model output, TTS voice).
+- **Language follows the user; English is the fallback.** The frontend reads `navigator.languages[0]` (with a
+  `?lang=xx` URL override for testing) and uses it for three things: UI text (`src/lib/i18n.ts`, hand-written for
+  English, Chinese, Spanish, French and Japanese; other languages get English text), the `lang` field sent to
+  `/api/see` so the description is written in that language, and the TTS voice. Code, comments, docs and the
+  backend's error codes stay English.
+- **`lang` is untrusted input that reaches an LLM prompt**, so the backend (`ai_svc/see/language.py`) accepts only
+  well-formed BCP-47 tags (letters and digits, short subtags) and maps the primary subtag to a language name;
+  anything else becomes English. Spoken output needs a device voice for that language; if none exists, the
+  browser falls back to its default voice, which may read the text poorly.
 - **Non-goals:** user accounts, storing images, server-side TTS, streaming/continuous video, offline use.
   Images are sent per request and not stored by this project.
 

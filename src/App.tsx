@@ -3,6 +3,7 @@ import CameraView from './components/CameraView'
 import ControlButton from './components/ControlButton'
 import Caption from './components/Caption'
 import { useVisionLoop } from './hooks/useVisionLoop'
+import { t } from './lib/i18n'
 import styles from './App.module.css'
 
 export default function App() {
@@ -13,10 +14,7 @@ export default function App() {
   return (
     <main role="main" className={styles.app}>
       <h1 className={styles.srOnly}>Hear the Color</h1>
-      <p className={styles.srOnly}>
-        An assistant that describes the scene in front of your phone camera and reads it aloud.
-        Use the Start Listening button to begin.
-      </p>
+      <p className={styles.srOnly}>{t.intro}</p>
       <CameraView videoRef={videoRef} />
       <div className={styles.top}>
         <ControlButton isRunning={isRunning} onToggle={() => setIsRunning((v) => !v)} />

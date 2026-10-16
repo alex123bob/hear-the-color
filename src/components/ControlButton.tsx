@@ -1,5 +1,6 @@
 import styles from '../App.module.css'
 import { unlockSpeech } from '../lib/speak'
+import { t } from '../lib/i18n'
 
 interface Props {
   isRunning: boolean
@@ -21,13 +22,9 @@ export default function ControlButton({ isRunning, onToggle }: Props) {
       type="button"
       className={styles.button}
       onClick={handleClick}
-      aria-label={
-        isRunning
-          ? 'Stop listening. The phone will stop describing the scene in front of you.'
-          : 'Start listening. The phone will describe the scene in front of you.'
-      }
+      aria-label={isRunning ? t.stopLabel : t.startLabel}
     >
-      {isRunning ? 'Stop' : 'Start Listening'}
+      {isRunning ? t.stop : t.start}
     </button>
   )
 }

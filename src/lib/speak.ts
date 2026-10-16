@@ -1,3 +1,5 @@
+import { language } from './i18n'
+
 // Mobile browsers (iOS Safari especially) only allow speech that starts inside a user gesture. Our real
 // speech happens seconds later, after a network call, so call this synchronously from the tap handler:
 // a silent utterance there unlocks speechSynthesis for the rest of the page's life.
@@ -8,10 +10,16 @@ export function unlockSpeech() {
   window.speechSynthesis.speak(utterance)
 }
 
-// Prefer an English voice explicitly; some mobile browsers have no default for the requested lang
+// Prefer a voice for the detected language explicitly; some mobile browsers have no default for the
+// requested lang. Some platforms report tags with underscores (e.g. zh_CN).
 function pickVoice(): SpeechSynthesisVoice | undefined {
   const voices = window.speechSynthesis.getVoices()
-  return voices.find((v) => v.lang === 'en-US') ?? voices.find((v) => v.lang.startsWith('en'))
+  const norm = (s: string) => s.replace('_', '-').toLowerCase()
+  const want = norm(language)
+  const primary = want.split('-')[0]
+  return (
+    voices.find((v) => norm(v.lang) === want) ?? voices.find((v) => norm(v.lang).split('-')[0] === primary)
+  )
 }
 
 // Read text aloud with the browser TTS. Resolves when the speech has finished (or failed / was cancelled),
@@ -26,7 +34,7 @@ export function speak(text: string): Promise<void> {
     window.speechSynthesis.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'en-US'
+    utterance.lang = language
     utterance.rate = 1.05
     const voice = pickVoice()
     if (voice) utterance.voice = voice
