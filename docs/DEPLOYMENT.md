@@ -52,9 +52,10 @@ No Nginx change is needed for the backend; `location /api` already proxies to `l
 
 ## 2. Nginx (one-time)
 
-Add to the `server { listen 443 ssl; ... }` block of the Nginx config (see the marked section in
-[nginx.conf.example](nginx.conf.example)), next to `/yvonne` and `/home/`
-(it must be inside this block so it takes priority over the catch-all `location /`):
+Only this project's block is needed. Add it inside the existing `server { listen 443 ssl; ... }` block
+(anywhere, e.g. next to `/yvonne`; Nginx matches the longest prefix, so it wins over the catch-all
+`location /`). Don't replace the whole config. [nginx.conf.example](nginx.conf.example) is a full reference
+copy of the production file with this block marked, so you can see where it sits.
 
 ```nginx
 location = /hear-the-color {

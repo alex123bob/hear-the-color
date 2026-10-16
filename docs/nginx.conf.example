@@ -1,5 +1,6 @@
-# Reference copy of the production Nginx config on the GCP server (lijialab.com).
-# The /hear-the-color/ block is the one this project needs; /api is shared with PP-AI-Service.
+# Reference copy of the production Nginx config on the GCP server (lijialab.com). Do not deploy this file as is.
+# This project only needs the "Hear the Color" block; /api is shared with PP-AI-Service.
+# The block to add is also in docs/DEPLOYMENT.md (section 2).
 
 server {
     listen 80;
