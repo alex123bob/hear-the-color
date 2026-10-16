@@ -6,10 +6,10 @@ interface Props {
 }
 
 export default function Caption({ text, isLoading }: Props) {
-  // aria-live 让读屏软件在文字变化时自动播报
+  // aria-live makes screen readers announce the text whenever it changes
   return (
     <div className={styles.caption} role="status" aria-live="polite">
-      {isLoading ? '正在看…' : text || '点击右上角“开始聆听”'}
+      {isLoading ? 'Looking...' : text || 'Tap "Start Listening" at the top right'}
     </div>
   )
 }

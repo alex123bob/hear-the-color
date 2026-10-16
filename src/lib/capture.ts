@@ -1,9 +1,9 @@
-// 从 video 截取一帧，返回不带 data:image/jpeg;base64, 前缀的 base64 字符串
+// Grab one frame from the video and return base64 without the data:image/jpeg;base64, prefix
 const WIDTH = 640
 const HEIGHT = 480
 
 export function captureFrame(video: HTMLVideoElement): string | null {
-  // 视频尚未有画面时不截取
+  // Nothing to capture until the video has a frame
   if (video.readyState < 2 || !video.videoWidth) return null
   const canvas = document.createElement('canvas')
   canvas.width = WIDTH

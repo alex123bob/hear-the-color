@@ -1,4 +1,4 @@
-// 使用浏览器 TTS 朗读文本；朗读前先取消上一条
+// Read text aloud with the browser TTS; cancel the previous utterance first
 export function speak(text: string) {
   if (!('speechSynthesis' in window)) return
   window.speechSynthesis.cancel()

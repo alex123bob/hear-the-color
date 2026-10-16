@@ -16,12 +16,12 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
   const [error, setError] = useState('')
   const timerRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  // 上一次请求还没返回时跳过本次 tick，避免请求堆积
+  // Skip a tick while the previous request is still in flight, so requests don't pile up
   const inFlightRef = useRef(false)
 
   useEffect(() => {
     if (!isRunning) return
-    // 防止 effect 清理后异步回调还在改状态
+    // Stops async callbacks from touching state after the effect has been cleaned up
     let cancelled = false
 
     const tick = async () => {
@@ -43,12 +43,12 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
           setCaption(data.text)
           speak(data.text)
         } else if (res.status === 429) {
-          setCaption('请求太频繁，请稍等一下')
+          setCaption('Too many requests, please wait a moment')
         } else {
-          setCaption('网络好像出了点问题')
+          setCaption('Network seems to have an issue')
         }
       } catch {
-        if (!cancelled) setCaption('网络好像出了点问题')
+        if (!cancelled) setCaption('Network seems to have an issue')
       } finally {
         inFlightRef.current = false
         if (!cancelled) setIsLoading(false)
@@ -72,11 +72,11 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
           await video.play().catch(() => undefined)
         }
         setError('')
-        void tick() // 启动后立即识别一次，不必等 4 秒
+        void tick() // Run once right away instead of waiting 4 seconds
         timerRef.current = window.setInterval(tick, INTERVAL_MS)
       } catch {
         if (!cancelled) {
-          setError('无法打开摄像头，请检查权限（手机需要 HTTPS）')
+          setError('Cannot open the camera. Check permissions (phones require HTTPS)')
         }
       }
     }

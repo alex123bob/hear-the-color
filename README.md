@@ -1,76 +1,80 @@
 # Hear the Color
 
-给视障用户的网页版 AI 视觉助手：举起手机，浏览器打开摄像头，每 4 秒截一帧发给后端，
-后端调用多模态大模型返回一句温暖、具体的中文描述，前端用浏览器 TTS 朗读出来。
+A web-based AI vision assistant for visually impaired users. Raise your phone, the browser opens the
+camera, a frame is captured every 4 seconds and sent to the backend, which asks a multimodal LLM for a
+warm, specific one-sentence Chinese description. The frontend reads it aloud with browser TTS.
 
-- 前端：Vite + React 18 + TypeScript（本仓库，纯静态托管）
-- 后端：复用 `PP-AI-Service`（Flask），新增 `POST /api/see`，**所有后端改动都在 PP-AI-Service 里**
+- Frontend: Vite + React 18 + TypeScript (this repo, statically hosted)
+- Backend: the existing `PP-AI-Service` Flask app, with a new `POST /api/see` route.
+  **All backend changes live in PP-AI-Service.**
 
-## 本地运行
+## Run locally
 
-1. 启动后端（另一个仓库）：
+1. Start the backend (other repo):
 
    ```bash
    cd ../PP-AI-Service
-   source venv/bin/activate && python app.py   # 监听 :8000
+   source venv/bin/activate && python app.py   # listens on :8000
    ```
 
-2. 启动前端：
+2. Start the frontend:
 
    ```bash
    npm install
    npm run dev
    ```
 
-   本地开发时 `.env.local` 不用配置：前端请求 `/api/see`，由 Vite 代理到 `http://localhost:8000`
-   （可用 `DEV_PROXY_TARGET` 改代理目标）。
+   No `.env.local` is needed for local dev: the frontend calls `/api/see` and the Vite dev server
+   proxies it to `http://localhost:8000` (override with `DEV_PROXY_TARGET`).
 
-3. 访问：
-   - 电脑：<http://localhost:5173>（浏览器视 localhost 为安全环境，可以直接用摄像头）
-   - 手机/局域网：`http://<电脑IP>:5173`（dev server 已监听 0.0.0.0）。
-     **注意：** 浏览器只在 HTTPS 或 localhost 下允许打开摄像头，所以局域网 IP 的 http 页面能打开、
-     但摄像头会被拒绝。手机真机测试请用 HTTPS 隧道（如 `cloudflared tunnel --url http://localhost:5173`），
-     或在 Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure` 中加入该地址。
+3. Open:
+   - Desktop: <http://localhost:5173> (browsers treat localhost as a secure context, so the camera works)
+   - Phone / LAN: `http://<your-computer-ip>:5173` (the dev server listens on 0.0.0.0).
+     **Note:** browsers only allow camera access on HTTPS or localhost, so the page will load over a
+     LAN IP but the camera will be refused. For real-phone testing use an HTTPS tunnel
+     (e.g. `cloudflared tunnel --url http://localhost:5173`), or add the address in Chrome at
+     `chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
 
-## 配置 `VITE_API_BASE_URL`
+## Configure `VITE_API_BASE_URL`
 
-复制 `.env.example` 为 `.env.local`：
+Copy `.env.example` to `.env.local`:
 
 ```
 VITE_API_BASE_URL=https://lijialab.com
 ```
 
-留空则请求同源 `/api/see`（本地走 Vite 代理）。生产构建（静态托管在别的域名）必须填后端地址。
+Leave it empty to call same-origin `/api/see` (local dev goes through the Vite proxy). Production builds
+hosted on a different domain must set it to the backend URL.
 
-## 部署
+## Deploy
 
-### 后端
-新路由已在 `PP-AI-Service/app.py`。把代码拉到服务器，重启 Flask 即可，**无需改 Nginx**
-（`location /api` 已经转发到 `localhost:8000`）。
+### Backend
+The new route is already in `PP-AI-Service/app.py`. Pull the code on the server and restart Flask.
+**No Nginx changes needed** (`location /api` already proxies to `localhost:8000`).
 
-### 切换模型服务商
-在后端 `.env` 里改 `AI_PROVIDER`，然后重启 Flask：
+### Switching the model provider
+Change `AI_PROVIDER` in the backend `.env` and restart Flask:
 
-| 变量 | 说明 |
+| Variable | Notes |
 | --- | --- |
-| `AI_PROVIDER` | `openai`（默认）或 `deepseek` |
-| `OPENAI_API_KEY` / `OPENAI_BASE_URL`（可选，兼容旧的 `OPENAI_API_BASE`）/ `OPENAI_MODEL`（默认 `gpt-4o-mini`） | OpenAI |
-| `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com`）/ `DEEPSEEK_MODEL`（默认 `deepseek-flash`） | DeepSeek |
+| `AI_PROVIDER` | `openai` (default) or `deepseek` |
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL` (optional, falls back to the legacy `OPENAI_API_BASE`), `OPENAI_MODEL` (default `gpt-4o-mini`) | OpenAI |
+| `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL` (default `https://api.deepseek.com`), `DEEPSEEK_MODEL` (default `deepseek-flash`) | DeepSeek |
 
-`AI_PROVIDER` 只影响 `/api/see`；`/api/image` 始终使用 OpenAI。
-注意：所选模型必须支持图片输入，否则 `/api/see` 会返回 500。
+`AI_PROVIDER` only affects `/api/see`; `/api/image` always uses OpenAI. The chosen model must accept
+image input, otherwise `/api/see` returns 500.
 
-### 前端
+### Frontend
 
 ```bash
 npm run build
-vercel --prod        # 或 firebase deploy
+vercel --prod        # or: firebase deploy
 ```
 
-在托管平台设置环境变量 `VITE_API_BASE_URL`（构建时注入）。
+Set `VITE_API_BASE_URL` in the hosting platform's environment (it is injected at build time).
 
-## 提醒
+## Reminders
 
-- API Key 只存在后端 `.env`，前端永远不接触。
-- 手机访问必须 HTTPS（线上由 Nginx 提供）。
-- `/api/see` 带有按 IP 每分钟 20 次的内存限流（4 秒一帧约 15 次/分钟）。
+- API keys live only in the backend `.env`; the frontend never touches them.
+- Mobile access requires HTTPS (provided by Nginx in production).
+- `/api/see` has an in-memory rate limit of 20 requests per minute per IP (a 4-second loop uses ~15).

@@ -13,7 +13,7 @@ export default function ControlButton({ isRunning, onToggle }: Props) {
       onClick={onToggle}
       aria-pressed={isRunning}
     >
-      {isRunning ? '停止' : '开始聆听'}
+      {isRunning ? 'Stop' : 'Start Listening'}
     </button>
   )
 }
