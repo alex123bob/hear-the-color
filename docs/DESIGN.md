@@ -138,8 +138,8 @@ silent utterance synchronously inside the Start tap. On iOS the ringer (silent) 
 ### UI and accessibility
 
 - Pure black background, pure white text (21:1). The caption panel is 75% black over the camera; even over a
-  pure-white scene that is about 10:1, still above WCAG AAA (7:1). Body text is 22px, the caption 26px.
-- The button is at least 56px tall. Labels: "Start Listening" / "Stop". Its `aria-label` describes function and
+  pure-white scene that is about 10:1, still above WCAG AAA (7:1). The caption is deliberately compact (18px) so the live camera view gets the screen; the app speaks every description aloud, so reading the caption is secondary.
+- The button is 64px tall (controls never go below 56px). Labels: "Start Listening" / "Stop". Its `aria-label` describes function and
   result, e.g. "Start listening. The phone will describe the scene in front of you."
 - Layout: fullscreen camera, a top bar and the caption fixed at the bottom with 24px padding. On phones (up to
   560px wide) the top bar stacks Start/Stop full-width on the first row with the voice picker below it; on wider
