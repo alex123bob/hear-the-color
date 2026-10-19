@@ -1,10 +1,18 @@
+:global(:root) {
+  --ink: #000;
+  --paper: #fff;
+  --accent: #ffd400; /* 14:1 on black */
+  --danger: #ff6b5e; /* 7:1 on black */
+  --spectrum: linear-gradient(90deg, #ff3b30, #ff9500, #ffd400, #34c759, #00c7ff, #5e5ce6, #bf5af2);
+}
+
 :global(html),
 :global(body),
 :global(#root) {
   margin: 0;
   height: 100%;
-  background: #000;
-  color: #fff;
+  background: var(--ink);
+  color: var(--paper);
   font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 22px; /* body text is never smaller than 22px */
 }
@@ -12,56 +20,80 @@
 .app {
   position: fixed;
   inset: 0;
-  background: #000;
+  background: var(--ink);
   overflow: hidden;
 }
 
 .video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: #000;
+  background: var(--ink);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.running .video {
+  opacity: 0.55;
+}
+
+/* Idle backdrop: a soft spectrum glow so the first screen is never plain black */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 40% at 15% 20%, rgba(94, 92, 230, 0.35), transparent 70%),
+    radial-gradient(50% 40% at 90% 30%, rgba(255, 59, 48, 0.25), transparent 70%),
+    radial-gradient(60% 40% at 50% 100%, rgba(0, 199, 255, 0.3), transparent 70%);
+  transition: opacity 0.6s ease;
+}
+
+.running .backdrop {
+  opacity: 0.35;
+}
+
+/* Darkens the top and bottom of the camera image so text always sits on a dark ground */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 28%, transparent 40%, rgba(0, 0, 0, 0.92) 100%);
+  pointer-events: none;
 }
 
 .topBar {
   position: absolute;
   top: max(16px, env(safe-area-inset-top));
-  left: 16px;
-  right: 16px;
+  left: 20px;
+  right: 20px;
   display: flex;
-  /* row-reverse: Start/Stop sits at the right; when there isn't room, the voice picker wraps below it */
-  flex-direction: row-reverse;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 12px 16px;
 }
 
-.topBar > .button {
-  flex: 0 0 auto;
+.brand {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
-.button {
-  min-height: 56px;
-  min-width: 140px;
-  padding: 0 24px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #000;
-  background: #fff;
-  border: 3px solid #fff;
-  border-radius: 12px;
-  cursor: pointer;
+.brand::after {
+  content: '';
+  display: block;
+  height: 5px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: var(--spectrum);
 }
 
-.button:focus-visible {
-  outline: 3px solid #ffd400;
-  outline-offset: 3px;
-}
-
-/* Voice picker, as large and high-contrast as the main button. It takes the remaining width next to the
-   button (at most 420px); 240px is the least it needs to stay readable, so below that it wraps to its own row */
+/* Voice picker: a high-contrast pill; takes the full row on phones */
 .voiceLabel {
   flex: 1 1 240px;
+  max-width: 380px;
   min-width: 0;
   display: flex;
 }
@@ -69,33 +101,157 @@
 .voiceSelect {
   min-height: 56px;
   width: 100%;
-  max-width: 420px;
   padding: 0 16px;
   font-size: 22px;
   font-weight: 600;
-  color: #fff;
-  background: #000;
-  border: 3px solid #fff;
-  border-radius: 12px;
+  color: var(--paper);
+  background: rgba(0, 0, 0, 0.8);
+  border: 3px solid var(--paper);
+  border-radius: 28px;
   cursor: pointer;
 }
 
-.voiceSelect:focus-visible {
-  outline: 3px solid #ffd400;
-  outline-offset: 3px;
+.voiceSelect:focus-visible,
+.button:focus-visible {
+  outline: 4px solid var(--accent);
+  outline-offset: 4px;
 }
 
-/* Status messages (not the AI description) are italic and slightly dimmer in weight, not in contrast */
+/* Bottom stack: caption above the main button, thumb-reachable */
+.bottom {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.caption {
+  position: relative;
+  padding: 22px 24px 22px 32px;
+  min-height: 1.5em;
+  font-size: 26px;
+  line-height: 1.5;
+  color: var(--paper);
+  background: rgba(0, 0, 0, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* Left accent bar: spectrum for the AI description, amber for errors, white for status */
+.caption::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  background: var(--paper);
+}
+
+.captionResult::before {
+  background: linear-gradient(to bottom, #ff3b30, #ffd400, #34c759, #00c7ff, #bf5af2);
+}
+
+.captionError {
+  border-color: var(--danger);
+}
+
+.captionError::before {
+  background: var(--danger);
+}
+
+/* Status messages (not the AI description) are italic and slightly lighter in weight, not in contrast */
 .statusText {
   font-style: italic;
   font-weight: 300;
 }
 
-/* Visible pressed state for touch */
+.button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 88px;
+  padding: 0 28px;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--accent);
+  border: 4px solid var(--accent);
+  border-radius: 44px;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 rgba(255, 212, 0, 0.6);
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+
+.button svg {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+/* Gentle pulse invites the first tap */
+.button:not(.buttonOn) {
+  animation: invite 2.4s ease-out infinite;
+}
+
+.buttonOn {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--paper);
+}
+
 .button:active {
-  background: #ffd400;
-  border-color: #ffd400;
-  transform: scale(0.96);
+  transform: scale(0.97);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Live indicator while listening: bars that bounce */
+.bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+}
+
+.bars i {
+  width: 5px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transform-origin: center;
+  animation: bounce 0.9s ease-in-out infinite;
+}
+
+.bars i:nth-child(2) { animation-delay: 0.15s; }
+.bars i:nth-child(3) { animation-delay: 0.3s; }
+.bars i:nth-child(4) { animation-delay: 0.45s; }
+
+@keyframes invite {
+  0% { box-shadow: 0 0 0 0 rgba(255, 212, 0, 0.55); }
+  70%, 100% { box-shadow: 0 0 0 28px rgba(255, 212, 0, 0); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .bars i {
+    animation: none !important;
+    transition: none;
+  }
 }
 
 /* Visually hidden, still read by screen readers */
@@ -111,26 +267,9 @@
   border: 0;
 }
 
-.caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 24px 24px max(24px, env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
-  font-size: 26px;
-  line-height: 1.5;
-  min-height: 1.5em;
-}
-
-/* Phones: Start/Stop gets the whole first row (biggest, easiest target), the voice picker the row below */
 @media (max-width: 560px) {
-  .topBar > .button {
-    flex: 1 1 100%;
-  }
-
-  .voiceSelect {
+  .voiceLabel {
+    flex-basis: 100%;
     max-width: none;
   }
 }

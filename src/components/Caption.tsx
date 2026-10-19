@@ -11,8 +11,9 @@ export default function Caption({ text, kind }: Props) {
   // role="status" with aria-live="off": the text is shown but NOT announced by screen readers.
   // The app speaks the AI description itself via TTS, so announcing it too would double-speak.
   // (role="status" is an implicit polite live region; aria-live="off" turns that off.)
+  const tone = kind === 'result' ? styles.captionResult : kind === 'error' ? styles.captionError : styles.statusText
   return (
-    <div className={`${styles.caption} ${kind === 'result' ? '' : styles.statusText}`} role="status" aria-live="off">
+    <div className={`${styles.caption} ${tone}`} role="status" aria-live="off">
       {text || t.idle}
     </div>
   )

@@ -21,16 +21,21 @@ export default function App() {
   }, [voice])
 
   return (
-    <main role="main" className={styles.app}>
-      <h1 className={styles.srOnly}>Hear the Color</h1>
-      <p className={styles.srOnly}>{t.intro}</p>
+    <main role="main" className={`${styles.app} ${isRunning ? styles.running : ''}`}>
+      <div className={styles.backdrop} aria-hidden="true" />
       <CameraView videoRef={videoRef} />
-      {/* Start/Stop comes first in the DOM, so it is also first in Tab and screen-reader order */}
-      <div className={styles.topBar}>
+      <div className={styles.scrim} aria-hidden="true" />
+      <p className={styles.srOnly}>{t.intro}</p>
+      {/* Start/Stop comes first in the DOM, so it is also first in Tab and screen-reader order;
+          CSS places the bottom stack at the bottom of the screen */}
+      <div className={styles.bottom}>
         <ControlButton isRunning={isRunning} onToggle={() => setIsRunning((v) => !v)} />
-        <VoiceSelect value={voice} onChange={setVoice} />
+        <Caption text={caption} kind={kind} />
       </div>
-      <Caption text={caption} kind={kind} />
+      <header className={styles.topBar}>
+        <h1 className={styles.brand}>Hear the Color</h1>
+        <VoiceSelect value={voice} onChange={setVoice} />
+      </header>
     </main>
   )
 }

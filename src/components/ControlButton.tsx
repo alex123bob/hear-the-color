@@ -20,11 +20,25 @@ export default function ControlButton({ isRunning, onToggle }: Props) {
   return (
     <button
       type="button"
-      className={styles.button}
+      className={`${styles.button} ${isRunning ? styles.buttonOn : ''}`}
       onClick={handleClick}
       aria-label={isRunning ? t.stopLabel : t.startLabel}
     >
-      {isRunning ? t.stop : t.start}
+      {isRunning ? (
+        <>
+          <span className={styles.bars} aria-hidden="true">
+            <i /><i /><i /><i />
+          </span>
+          {t.stop}
+        </>
+      ) : (
+        <>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          {t.start}
+        </>
+      )}
     </button>
   )
 }
