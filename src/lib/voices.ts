@@ -36,11 +36,24 @@ export function isNaturalVoice(v: SpeechSynthesisVoice): boolean {
 
 const norm = (s: string) => s.replace('_', '-').toLowerCase()
 
-// Voices for the detected language, natural-sounding ones first, then local before network voices
+// Some browsers (Safari in particular) list the same voice more than once, often with the same voiceURI.
+// Duplicate entries would show twice in the picker, and since <select> matches the first option with a given
+// value, picking the second copy would appear to do nothing. Keep one entry per voiceURI and per name+lang.
+function dedupe(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
+  const seen = new Set<string>()
+  return voices.filter((v) => {
+    const keys = [`uri:${v.voiceURI}`, `name:${v.name}|${norm(v.lang)}`]
+    if (keys.some((k) => seen.has(k))) return false
+    keys.forEach((k) => seen.add(k))
+    return true
+  })
+}
+
+// Voices for the detected language, natural-sounding ones first, then the exact locale, then by name
 export function voicesForLanguage(all: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
   const primary = norm(language).split('-')[0]
   const want = norm(language)
-  return all
+  return dedupe(all)
     .filter((v) => norm(v.lang).split('-')[0] === primary)
     .sort(
       (a, b) =>

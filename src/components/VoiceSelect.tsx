@@ -31,6 +31,8 @@ export default function VoiceSelect({ value, onChange }: Props) {
           <option key={v.voiceURI} value={v.voiceURI}>
             {isNaturalVoice(v) ? '★ ' : ''}
             {v.name}
+            {/* Same name in another locale (e.g. en-GB and en-US): show the locale to tell them apart */}
+            {voices.some((o) => o !== v && o.name === v.name) ? ` (${v.lang})` : ''}
           </option>
         ))}
       </select>
