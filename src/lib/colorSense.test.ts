@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NEUTRAL_SATURATION, analyzePixels, frameDifference } from './colorSense'
+import { NEUTRAL_SATURATION, analyzePixels, frameDifference, zoneDifference } from './colorSense'
 
 // Build an RGBA buffer from [r, g, b] pixels
 const rgba = (...pixels: number[][]) => new Uint8ClampedArray(pixels.flatMap(([r, g, b]) => [r, g, b, 255]))
@@ -51,5 +51,26 @@ describe('frameDifference', () => {
   })
   it('is 1 when the lengths differ', () => {
     expect(frameDifference(fill(4, [0, 0, 0]), fill(5, [0, 0, 0]))).toBe(1)
+  })
+})
+
+describe('zoneDifference', () => {
+  it('reports a change only in the zone where it happened', () => {
+    const before = fill(9, [0, 0, 0])
+    // 3x3 frame: change only the left column
+    const after = rgba(
+      [255, 255, 255], [0, 0, 0], [0, 0, 0],
+      [255, 255, 255], [0, 0, 0], [0, 0, 0],
+      [255, 255, 255], [0, 0, 0], [0, 0, 0],
+    )
+    const d = zoneDifference(before, after, 3)
+    expect(d.left).toBe(1)
+    expect(d.center).toBe(0)
+    expect(d.right).toBe(0)
+  })
+
+  it('treats frames of different sizes as completely different', () => {
+    const d = zoneDifference(fill(9, [0, 0, 0]), fill(4, [0, 0, 0]), 3)
+    expect(d).toEqual({ left: 1, center: 1, right: 1 })
   })
 })

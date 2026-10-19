@@ -100,6 +100,24 @@ export function frameDifference(a: Uint8ClampedArray, b: Uint8ClampedArray): num
   return total / (samples * 255)
 }
 
+// Mean absolute RGB difference per zone (equal thirds of a `width`-pixel-wide frame). A small object entering
+// one side barely moves the whole-frame average but clearly changes its own third, and the zone tells where.
+export function zoneDifference(a: Uint8ClampedArray, b: Uint8ClampedArray, width: number): Record<keyof Zones, number> {
+  if (a.length !== b.length || a.length === 0 || width <= 0) return { left: 1, center: 1, right: 1 }
+  const sums = [0, 0, 0]
+  const counts = [0, 0, 0]
+  for (let i = 0; i < a.length; i += 4) {
+    const zone = Math.min(2, Math.floor((((i / 4) % width) * 3) / width))
+    sums[zone] += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2])
+    counts[zone] += 3
+  }
+  const mean = (z: number) => (counts[z] ? sums[z] / (counts[z] * 255) : 0)
+  return { left: mean(0), center: mean(1), right: mean(2) }
+}
+
+// Width of the sampled frame, for zoneDifference
+export const SAMPLE_WIDTH = SAMPLE_SIZE
+
 let canvas: HTMLCanvasElement | null = null
 
 // The current video frame as SAMPLE_SIZE x SAMPLE_SIZE RGBA pixels; null while there is no frame yet or

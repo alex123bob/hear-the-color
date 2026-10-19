@@ -4,9 +4,11 @@ import { captureFrame } from '../lib/capture'
 import { audioFromBase64, speak, stopSpeaking } from '../lib/speak'
 import { language, t } from '../lib/i18n'
 import { API_BASE } from '../lib/api'
-import { frameDifference, sampleZones, samplePixels } from '../lib/colorSense'
+import { SAMPLE_WIDTH, sampleZones, samplePixels, zoneDifference } from '../lib/colorSense'
 import {
+  changedZone,
   isForcedRefresh,
+  maxZoneDifference,
   isSpeakable,
   msUntilNextRequest,
   shouldDescribe,
@@ -111,7 +113,7 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
 
     // Send one frame to the backend; returns the description (and its speech when the server could make it),
     // or null after showing an error caption
-    const describe = async (image: string, previous: string | null): Promise<(Reply & { audio?: Blob }) | null> => {
+    const describe = async (image: string, previous: string | null, zone: string | null): Promise<(Reply & { audio?: Blob }) | null> => {
       // Status messages are shown but never spoken; only the AI description goes to speak()
       setCaption(t.sending)
       let stillWorkingTimer: number | undefined
@@ -121,7 +123,7 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
           `${API_BASE}/api/see`,
           // include_audio: the backend speaks the description too, so text and voice arrive together
           // previous: what the listener last heard, so the backend can describe only what is new
-          { image, lang: language, include_audio: wantAudioRef.current, ...(previous ? { previous } : {}) },
+          { image, lang: language, include_audio: wantAudioRef.current, ...(previous ? { previous } : {}), ...(previous && zone ? { changed_zone: zone } : {}) },
           {
             signal: abort.signal,
             // Handle HTTP errors ourselves instead of having axios throw
@@ -203,11 +205,11 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
         }
         // Skip the request while the scene looks the same as the one we last described (tones keep playing)
         const pixels = video ? samplePixels(video) : null
-        if (pixels && referencePixels) {
-          if (!shouldDescribe(frameDifference(referencePixels, pixels), Date.now() - lastDescribedAt)) {
-            await sleep(UNCHANGED_RECHECK_MS)
-            continue
-          }
+        // Per zone, so a small object entering one side counts, and we know which side
+        const zoneDiff = pixels && referencePixels ? zoneDifference(referencePixels, pixels, SAMPLE_WIDTH) : null
+        if (zoneDiff && !shouldDescribe(maxZoneDifference(zoneDiff), Date.now() - lastDescribedAt)) {
+          await sleep(UNCHANGED_RECHECK_MS)
+          continue
         }
         // The backend allows 20 requests a minute: keep a floor between calls, however jittery the camera is
         const gap = msUntilNextRequest(lastRequestAt, Date.now())
@@ -224,7 +226,7 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
         // Capture after the explanation, so the frame we send is what the camera sees now
         const fresh = video ? captureFrame(video) : null
         lastRequestAt = Date.now()
-        const result = await describe(fresh ?? image, forced ? null : scene || null)
+        const result = await describe(fresh ?? image, forced ? null : scene || null, zoneDiff ? changedZone(zoneDiff) : null)
         if (cancelled) return
         // Switched to tones-only while the request was in flight: drop the answer, no caption, no speech
         if (!canDescribe(soundModeRef.current)) continue

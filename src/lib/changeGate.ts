@@ -9,6 +9,19 @@ export function shouldDescribe(diff: number, msSinceLastDescription: number): bo
   return diff >= CHANGE_THRESHOLD || msSinceLastDescription >= FORCE_REFRESH_MS
 }
 
+// Where in the view the scene changed, from per-zone differences: one zone, or 'wide' when several changed
+export type ChangedZone = 'left' | 'center' | 'right' | 'wide'
+
+export function maxZoneDifference(d: { left: number; center: number; right: number }): number {
+  return Math.max(d.left, d.center, d.right)
+}
+
+export function changedZone(d: { left: number; center: number; right: number }): ChangedZone | null {
+  const hit = (['left', 'center', 'right'] as const).filter((z) => d[z] >= CHANGE_THRESHOLD)
+  if (hit.length === 0) return null
+  return hit.length === 1 ? hit[0] : 'wide'
+}
+
 // A /api/see reply. `changed` is only present when we sent `previous`; an older backend never sends it
 export interface Reply {
   text: string

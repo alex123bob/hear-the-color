@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   CHANGE_THRESHOLD,
+  changedZone,
+  maxZoneDifference,
   FORCE_REFRESH_MS,
   MIN_REQUEST_GAP_MS,
   isForcedRefresh,
@@ -70,5 +72,21 @@ describe('updateScene', () => {
     const scene = updateScene('a'.repeat(290), { text: 'b'.repeat(50), changed: true })
     expect(scene.length).toBe(300)
     expect(scene.endsWith('b'.repeat(50))).toBe(true)
+  })
+})
+
+describe('changedZone', () => {
+  it('is null when no zone changed enough', () => {
+    expect(changedZone({ left: 0.01, center: 0.02, right: 0 })).toBeNull()
+  })
+  it('names the one zone that changed', () => {
+    expect(changedZone({ left: 0.2, center: 0.01, right: 0 })).toBe('left')
+    expect(changedZone({ left: 0, center: 0.01, right: 0.09 })).toBe('right')
+  })
+  it('says wide when several zones changed', () => {
+    expect(changedZone({ left: 0.2, center: 0.2, right: 0 })).toBe('wide')
+  })
+  it('maxZoneDifference is the largest zone', () => {
+    expect(maxZoneDifference({ left: 0.1, center: 0.3, right: 0.2 })).toBe(0.3)
   })
 })
