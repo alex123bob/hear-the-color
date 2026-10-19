@@ -30,7 +30,8 @@ Phone browser ──(camera frame, base64 JPEG)──▶ Nginx ──▶ PP-AI-S
 
 ### `POST /api/see`
 
-Request: `{ "image": "<base64 JPEG, WITHOUT the data:image/jpeg;base64, prefix>", "lang": "<optional BCP-47 tag, e.g. zh-CN>" }`
+Request: `{ "image": "<base64 JPEG, WITHOUT the data:image/jpeg;base64, prefix>", "lang": "<optional BCP-47 tag, e.g. zh-CN>", "include_audio": <optional true> }`
+(with `include_audio` the 200 body also carries `audio` (base64 MP3) and `audio_format`, or `audio_error`)
 
 | Status | Body | When |
 | --- | --- | --- |
@@ -90,8 +91,8 @@ src/
 1. When `isRunning` becomes true: `getUserMedia({ video: { facingMode: 'environment' }, audio: false })`,
    attach the stream to the video, then start the loop.
 2. Loop: capture a JPEG (longest side 768px, original aspect ratio kept, quality 0.8) -> strip the data-URL prefix -> POST to
-   `${VITE_API_BASE_URL}/api/see` inside try/catch (staged status captions while in flight, see below) -> set the caption ->
-   **speak and wait until the speech has ended** -> 500 ms pause -> capture the next frame.
+   `${VITE_API_BASE_URL}/api/see` with `include_audio: true` inside try/catch (staged status captions while in
+   flight, see below) -> set the caption and start the returned audio together -> **wait until the speech has ended** -> 500 ms pause -> capture the next frame.
 3. Because the next frame is only taken after the previous description has been spoken, speech never overlaps
    and requests never pile up. The cycle time is therefore model latency plus speaking time (no fixed 4 s).
 4. Status shown while waiting (all translated, shown in italics, never spoken):
@@ -107,8 +108,10 @@ src/
    immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
 `speak.ts`: `speak(text)` returns a Promise that resolves when playback has finished or was stopped.
-1. It downloads the MP3 from `GET /api/speak?text=...` with `fetch` and plays it from a blob URL on one shared
-   `<audio>` element. (Pointing `<audio src>` straight at the streamed response was tried; some browsers stayed
+1. The frontend sends `include_audio: true` with every frame, so `/api/see` returns the description **and** its
+   MP3 in one response. The caption is shown and playback starts at the same moment (measured: ~30 ms apart),
+   with no second round trip. Only if that audio is missing (`audio_error`) does `speak()` download it from
+   `GET /api/speak?text=...`. Either way the MP3 is played from a blob URL on one shared `<audio>` element. (Pointing `<audio src>` straight at the streamed response was tried; some browsers stayed
    silent with it, and it only saved ~0.3-1 s because OpenAI finishes a one-sentence clip about a second after
    its first bytes.) MP3 is kept on purpose: WAV/PCM are 5-10x larger, so they download more slowly.
 2. Playback runs at 1.5x (`PLAYBACK_RATE`, pitch preserved); the browser voice fallback at 1.4x.

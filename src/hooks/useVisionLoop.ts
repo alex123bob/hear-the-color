@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import axios from 'axios'
 import { captureFrame } from '../lib/capture'
-import { speak, stopSpeaking } from '../lib/speak'
+import { audioFromBase64, speak, stopSpeaking } from '../lib/speak'
 import { language, t } from '../lib/i18n'
 import { API_BASE } from '../lib/api'
 
@@ -48,8 +48,9 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         }
       })
 
-    // Send one frame to the backend; returns the description, or null after showing an error caption
-    const describe = async (image: string): Promise<string | null> => {
+    // Send one frame to the backend; returns the description (and its speech when the server could make it),
+    // or null after showing an error caption
+    const describe = async (image: string): Promise<{ text: string; audio?: Blob } | null> => {
       // Status messages are shown but never spoken; only the AI description goes to speak()
       setCaption(t.sending)
       let stillWorkingTimer: number | undefined
@@ -57,7 +58,8 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
       try {
         const res = await axios.post(
           `${API_BASE}/api/see`,
-          { image, lang: language },
+          // include_audio: the backend speaks the description too, so text and voice arrive together
+          { image, lang: language, include_audio: true },
           {
             signal: abort.signal,
             // Handle HTTP errors ourselves instead of having axios throw
@@ -76,7 +78,13 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
           },
         )
         if (cancelled) return null
-        if (res.status >= 200 && res.status < 300 && res.data?.text) return res.data.text as string
+        if (res.status >= 200 && res.status < 300 && res.data?.text) {
+          return {
+            text: res.data.text as string,
+            // Missing when speech failed on the server (audio_error); speak() then falls back
+            audio: audioFromBase64(res.data.audio, res.data.audio_format),
+          }
+        }
         setCaption(res.status === 429 ? t.tooMany : t.networkError, 'error')
       } catch (err) {
         // Aborted on Stop/unmount: stay quiet. Anything else is a network failure.
@@ -97,11 +105,12 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
           await sleep(NO_FRAME_DELAY_MS)
           continue
         }
-        const text = await describe(image)
+        const result = await describe(image)
         if (cancelled) return
-        if (text) {
-          setCaption(text, 'result')
-          await speak(text)
+        if (result) {
+          // Caption and voice start together: the audio is already here, so playback begins right away
+          setCaption(result.text, 'result')
+          await speak(result.text, result.audio)
           await sleep(PAUSE_AFTER_SPEECH_MS)
         } else {
           await sleep(RETRY_DELAY_MS)
