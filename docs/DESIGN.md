@@ -163,6 +163,32 @@ silent utterance synchronously inside the Start tap. On iOS the ringer (silent) 
 Flask app. Runtime dependencies: react, react-dom and axios (used for upload-progress events). Dev: vite,
 typescript, @vitejs/plugin-react, @vitejs/plugin-basic-ssl (HTTPS dev mode) and the React type packages.
 
+## Sound layer
+
+Spec: [superpowers/specs/2026-10-19-sound-layer-design.md](superpowers/specs/2026-10-19-sound-layer-design.md).
+On top of the spoken description the app plays live tones, so the user hears color as they sweep the camera.
+
+- **Tones** (`lib/colorSense.ts`, `lib/tones.ts`): about 10 times a second the video is drawn onto a 32x32
+  canvas, split into equal thirds of the width (left, center, right) and each third reduced to hue,
+  saturation and brightness. Each zone drives one sine oscillator through its own stereo panner (-1, 0, +1):
+  hue sets pitch (one octave, 220-440 Hz, pentatonic, warm low and cool high), brightness sets loudness
+  (master cap 0.15). Zones with saturation below 0.15 hum at 110 Hz, almost silent. This is local sampling:
+  nothing extra is uploaded. Headphones give the best left/right effect. There is no distance estimate
+  (a phone browser has no reliable depth); the description may still say "close" or "far".
+- **Ducking:** while a sentence is spoken the tones dip to 15% (150 ms down, 300 ms back). The un-duck is in a
+  `finally` and Stop silences everything, so it can't stay low.
+- **Modes** (`lib/soundMode.ts`, `SoundSelect`, key `htc.soundMode`): *Voice only* (`describe`), *Voice and
+  tones* (`both`, default), *Tones only* (`tones`: no `/api/see` calls, no speech). A switch applies live.
+  The first time tones are on, a one-line explanation is spoken once per device (`htc.toneIntroSeen`); in
+  *Tones only* it is shown as a caption.
+- **Change-only narration** (`lib/changeGate.ts`): the loop compares the current 32x32 frame with the last
+  *described* one and skips the request below a mean RGB difference of 0.04 (slow drift accumulates against
+  the reference). After 45 s without a description it asks anyway. The last spoken sentence is sent as
+  `previous`; the backend answers with `changed: true|false`. `changed: false` is neither spoken nor shown, and
+  the reply from an older backend (no `changed`) is treated as a normal description.
+- **iOS:** Web Audio is unlocked in the Start tap next to `unlockSpeech()`. The ringer switch mutes it, and
+  tones plus speech playing together are worth a check on a real device; the fallback is *Voice only*.
+
 ## Decisions and non-goals
 
 - **Same origin, no CORS.** The frontend is served from the backend's own domain. Flask CORS is still

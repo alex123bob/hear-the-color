@@ -7,6 +7,10 @@ look again, so descriptions never talk over each other. The language follows the
 (UI text for English, Chinese, Spanish, French and Japanese; the description and voice follow any language),
 with English as the fallback.
 
+It also plays live **color tones**: pitch follows the hue, volume the brightness, and left/right placement where
+it is in view. A Sound picker chooses *Voice only*, *Voice and tones* (default) or *Tones only*, and a still scene
+is not re-described: only what changed is said. See [docs/DESIGN.md](docs/DESIGN.md#sound-layer).
+
 Live at <https://lijialab.com/hear-the-color/> (after you deploy, see below).
 
 ## How it fits together
