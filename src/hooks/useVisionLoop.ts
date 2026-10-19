@@ -4,7 +4,8 @@ import { captureFrame } from '../lib/capture'
 import { audioFromBase64, speak, stopSpeaking } from '../lib/speak'
 import { language, t } from '../lib/i18n'
 import { API_BASE } from '../lib/api'
-import { sampleZones } from '../lib/colorSense'
+import { frameDifference, sampleZones, samplePixels } from '../lib/colorSense'
+import { isSpeakable, shouldDescribe, type Reply } from '../lib/changeGate'
 import type { SoundMode } from '../lib/soundMode'
 import { duck, startTones, stopTones, updateTones } from '../lib/tones'
 
@@ -20,6 +21,8 @@ const STILL_WORKING_AFTER_MS = 8000
 const TONE_UPDATE_MS = 100
 // Idle check interval while in tones-only mode, so a switch to a describing mode is noticed quickly
 const TONES_ONLY_IDLE_MS = 300
+// Re-check interval while the scene hasn't changed enough to be worth describing
+const UNCHANGED_RECHECK_MS = 300
 // Set once the spoken explanation of the tones has been heard on this device
 const TONE_INTRO_KEY = 'htc.toneIntroSeen'
 
@@ -101,7 +104,7 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
 
     // Send one frame to the backend; returns the description (and its speech when the server could make it),
     // or null after showing an error caption
-    const describe = async (image: string): Promise<{ text: string; audio?: Blob } | null> => {
+    const describe = async (image: string, previous: string | null): Promise<(Reply & { audio?: Blob }) | null> => {
       // Status messages are shown but never spoken; only the AI description goes to speak()
       setCaption(t.sending)
       let stillWorkingTimer: number | undefined
@@ -110,7 +113,8 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
         const res = await axios.post(
           `${API_BASE}/api/see`,
           // include_audio: the backend speaks the description too, so text and voice arrive together
-          { image, lang: language, include_audio: wantAudioRef.current },
+          // previous: what the listener last heard, so the backend can describe only what is new
+          { image, lang: language, include_audio: wantAudioRef.current, ...(previous ? { previous } : {}) },
           {
             signal: abort.signal,
             // Handle HTTP errors ourselves instead of having axios throw
@@ -129,9 +133,11 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
           },
         )
         if (cancelled) return null
-        if (res.status >= 200 && res.status < 300 && res.data?.text) {
+        if (res.status >= 200 && res.status < 300 && (res.data?.text || res.data?.changed === false)) {
           return {
             text: res.data.text as string,
+            // Only present when we sent `previous`; false means nothing meaningful changed
+            changed: typeof res.data.changed === 'boolean' ? (res.data.changed as boolean) : undefined,
             // Missing when speech failed on the server (audio_error); speak() then falls back
             audio: audioFromBase64(res.data.audio, res.data.audio_format),
           }
@@ -164,6 +170,11 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
     const loop = async () => {
       // Tones-only mode shows the explanation once per pass in that mode
       let tonesCaptionShown = false
+      // The last frame we described (tiny sampled pixels), when, and what was said. Slow drift accumulates
+      // against this reference. They change only after a successful, spoken description.
+      let referencePixels: Uint8ClampedArray | null = null
+      let lastDescribedAt = Date.now()
+      let lastSpoken: string | null = null
       while (!cancelled) {
         if (soundModeRef.current === 'tones') {
           // No AI calls and no speech: the tones are the whole experience
@@ -181,11 +192,29 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
           await sleep(NO_FRAME_DELAY_MS)
           continue
         }
+        // Skip the request while the scene looks the same as the one we last described (tones keep playing)
+        const pixels = video ? samplePixels(video) : null
+        if (pixels && referencePixels) {
+          if (!shouldDescribe(frameDifference(referencePixels, pixels), Date.now() - lastDescribedAt)) {
+            await sleep(UNCHANGED_RECHECK_MS)
+            continue
+          }
+        }
         await explainTones()
         if (cancelled) return
-        const result = await describe(image)
+        const result = await describe(image, lastSpoken)
         if (cancelled) return
-        if (result) {
+        if (result && !isSpeakable(result)) {
+          // The AI says nothing new: stay quiet. The view looks different but means the same, so take it as the
+          // new pixel reference (else we would re-ask every pass and hit the rate limit). lastSpoken stays,
+          // so the AI keeps comparing against what the listener actually heard.
+          referencePixels = pixels
+          lastDescribedAt = Date.now()
+          await sleep(UNCHANGED_RECHECK_MS)
+        } else if (result) {
+          referencePixels = pixels
+          lastDescribedAt = Date.now()
+          lastSpoken = result.text
           // Caption and voice start together: the audio is already here, so playback begins right away
           setCaption(result.text, 'result')
           // Tones dip while the sentence is spoken; the finally means a cancelled speech can't leave them low
