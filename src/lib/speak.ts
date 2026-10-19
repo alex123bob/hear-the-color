@@ -9,9 +9,9 @@ import { language } from './i18n'
 // always-available browser voice, so the app never goes silent.
 
 // Playback speed of the natural voice. preservesPitch (default true) keeps it from sounding chipmunky.
-const PLAYBACK_RATE = 1.2
-// Same speed-up for the browser voice (its scale differs slightly, 1.0 is normal)
-const BROWSER_RATE = 1.15
+const PLAYBACK_RATE = 1.5
+// Speed-up for the browser voice; its scale is not the same as playbackRate, 1.4 is roughly comparable
+const BROWSER_RATE = 1.4
 // How long we wait for the audio to be generated, downloaded and started before giving up on the server voice
 const SERVER_TTS_TIMEOUT_MS = 15000
 // After this many failures in a row, skip the server for the rest of the session (re-armed on Start)

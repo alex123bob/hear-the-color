@@ -111,7 +111,7 @@ src/
    `<audio>` element. (Pointing `<audio src>` straight at the streamed response was tried; some browsers stayed
    silent with it, and it only saved ~0.3-1 s because OpenAI finishes a one-sentence clip about a second after
    its first bytes.) MP3 is kept on purpose: WAV/PCM are 5-10x larger, so they download more slowly.
-2. Playback runs at 1.2x (`PLAYBACK_RATE`, pitch preserved); the browser voice fallback at 1.15x.
+2. Playback runs at 1.5x (`PLAYBACK_RATE`, pitch preserved); the browser voice fallback at 1.4x.
 3. If audio hasn't started within 15 s, or the request fails (network, OpenAI unreachable, quota, playback
    refused), it speaks with the browser voice instead (`SpeechSynthesisUtterance`, detected language,
    length-based timeout as a safety net). After 2 failures in a row it stops trying the server until the next
