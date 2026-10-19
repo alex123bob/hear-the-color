@@ -1,5 +1,6 @@
 import { API_BASE } from './api'
 import { language } from './i18n'
+import { AI_VOICE, voicesForLanguage } from './voices'
 
 // Speech comes from the backend (OpenAI TTS, natural voice) and is played through one <audio> element.
 // Normally the MP3 arrives together with the description (/api/see with include_audio), so the caption and
@@ -44,16 +45,19 @@ export function unlockSpeech() {
   }
 }
 
-// Prefer a voice for the detected language explicitly; some mobile browsers have no default for the
-// requested lang. Some platforms report tags with underscores (e.g. zh_CN).
+// Current voice choice (see voices.ts): AI_VOICE, or the voiceURI of a built-in voice
+let voiceChoice = AI_VOICE
+
+export function setVoiceChoice(choice: string) {
+  voiceChoice = choice
+  // A fresh choice of the AI voice deserves a fresh try, even after earlier server failures
+  if (choice === AI_VOICE) serverFailures = 0
+}
+
+// The chosen built-in voice, or else the most natural-sounding one for the detected language
 function pickVoice(): SpeechSynthesisVoice | undefined {
   const voices = window.speechSynthesis.getVoices()
-  const norm = (s: string) => s.replace('_', '-').toLowerCase()
-  const want = norm(language)
-  const primary = want.split('-')[0]
-  return (
-    voices.find((v) => norm(v.lang) === want) ?? voices.find((v) => norm(v.lang).split('-')[0] === primary)
-  )
+  return voices.find((v) => v.voiceURI === voiceChoice) ?? voicesForLanguage(voices)[0]
 }
 
 // Browser voice. Resolves when the speech has finished (or failed / was cancelled)
@@ -173,6 +177,12 @@ function playFromServer(text: string, ready?: Blob): Promise<void> {
 // immediately; without it we fetch /api/speak, and if the server voice fails we use the browser voice.
 export async function speak(text: string, audio?: Blob): Promise<void> {
   stopSpeaking()
+
+  // A built-in voice was chosen: speak it straight away, ignoring any server audio
+  if (voiceChoice !== AI_VOICE) {
+    await speakWithBrowser(text)
+    return
+  }
 
   if (audio || serverFailures < MAX_SERVER_FAILURES) {
     // stopSpeaking() resolves this promise, so a Stop never falls through to the browser voice

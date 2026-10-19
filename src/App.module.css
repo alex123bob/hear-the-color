@@ -47,6 +47,33 @@
   outline-offset: 3px;
 }
 
+/* Voice picker, top-left, as large and high-contrast as the main button */
+.topLeft {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 16px;
+  /* leave room for the Start/Stop button on narrow phones */
+  max-width: calc(100% - 140px - 48px);
+}
+
+.voiceSelect {
+  min-height: 56px;
+  max-width: 100%;
+  padding: 0 16px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  background: #000;
+  border: 3px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.voiceSelect:focus-visible {
+  outline: 3px solid #ffd400;
+  outline-offset: 3px;
+}
+
 /* Status messages (not the AI description) are italic and slightly dimmer in weight, not in contrast */
 .statusText {
   font-style: italic;

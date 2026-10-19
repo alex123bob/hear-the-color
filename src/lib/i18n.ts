@@ -16,6 +16,8 @@ export interface Messages {
   tooMany: string
   cameraError: string
   intro: string
+  voiceLabel: string
+  voiceAi: string
 }
 
 const en: Messages = {
@@ -24,6 +26,8 @@ const en: Messages = {
   startLabel: 'Start listening. The phone will describe the scene in front of you.',
   stopLabel: 'Stop listening. The phone will stop describing the scene in front of you.',
   idle: 'Tap "Start Listening" at the top right',
+  voiceLabel: 'Voice',
+  voiceAi: 'Natural voice (AI)',
   cameraStarting: 'Starting the camera...',
   sending: 'Sending the photo...',
   analyzing: 'The AI is looking at the scene...',
@@ -43,6 +47,8 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: '开始聆听，点击后手机会描述眼前的场景',
     stopLabel: '停止聆听，点击后手机将不再描述眼前的场景',
     idle: '点击右上角“开始聆听”',
+    voiceLabel: '声音',
+    voiceAi: '自然人声（AI）',
     cameraStarting: '正在打开摄像头……',
     sending: '正在发送照片……',
     analyzing: 'AI 正在观察场景……',
@@ -58,6 +64,8 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: 'Empezar a escuchar. El teléfono describirá la escena que tienes delante.',
     stopLabel: 'Dejar de escuchar. El teléfono dejará de describir la escena que tienes delante.',
     idle: 'Toca "Empezar a escuchar" arriba a la derecha',
+    voiceLabel: 'Voz',
+    voiceAi: 'Voz natural (IA)',
     cameraStarting: 'Iniciando la cámara...',
     sending: 'Enviando la foto...',
     analyzing: 'La IA está mirando la escena...',
@@ -74,6 +82,8 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: 'Commencer à écouter. Le téléphone décrira la scène devant vous.',
     stopLabel: 'Arrêter l’écoute. Le téléphone cessera de décrire la scène devant vous.',
     idle: 'Touchez « Commencer à écouter » en haut à droite',
+    voiceLabel: 'Voix',
+    voiceAi: 'Voix naturelle (IA)',
     cameraStarting: 'Démarrage de la caméra...',
     sending: 'Envoi de la photo...',
     analyzing: 'L’IA observe la scène...',
@@ -90,6 +100,8 @@ const MESSAGES: Record<string, Messages> = {
     startLabel: '聞き始める。スマートフォンが目の前の情景を説明します。',
     stopLabel: '聞くのを止める。スマートフォンは目の前の情景の説明をやめます。',
     idle: '右上の「聞き始める」をタップしてください',
+    voiceLabel: '音声',
+    voiceAi: '自然な声（AI）',
     cameraStarting: 'カメラを起動しています……',
     sending: '写真を送信しています……',
     analyzing: 'AIが情景を見ています……',

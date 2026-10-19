@@ -107,6 +107,14 @@ src/
 6. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
    immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
+**Voice picker** (top-left, `VoiceSelect.tsx` + `lib/voices.ts`): "Natural voice (AI)" (OpenAI, the default) or
+any built-in voice the device has for the current language. Built-in voices that usually sound natural are
+starred and listed first, guessed from their names (Apple "Enhanced/Premium" and voices like Samantha, Chrome's
+"Google ..." online voices, Edge "Natural/Neural"); browsers don't report quality, so it's a heuristic. The
+choice is remembered per device in `localStorage` and applies from the next frame without restarting the
+camera. With a built-in voice the frontend sends `include_audio: false`, so no OpenAI speech is generated and
+speech starts instantly (about 2 s faster, at the cost of a less natural voice).
+
 `speak.ts`: `speak(text)` returns a Promise that resolves when playback has finished or was stopped.
 1. The frontend sends `include_audio: true` with every frame, so `/api/see` returns the description **and** its
    MP3 in one response. The caption is shown and playback starts at the same moment (measured: ~30 ms apart),

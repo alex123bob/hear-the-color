@@ -19,9 +19,11 @@ export type CaptionKind = 'status' | 'result' | 'error'
 interface Options {
   videoRef: RefObject<HTMLVideoElement>
   isRunning: boolean
+  // Ask the backend for spoken audio along with the description (only needed for the AI voice)
+  wantAudio: boolean
 }
 
-export function useVisionLoop({ videoRef, isRunning }: Options) {
+export function useVisionLoop({ videoRef, isRunning, wantAudio }: Options) {
   // kind: 'result' is the AI description (spoken); 'status' and 'error' are shown only, never spoken
   const [caption, setCaptionState] = useState<{ text: string; kind: CaptionKind }>({
     text: '',
@@ -29,6 +31,9 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
   })
   const setCaption = (text: string, kind: CaptionKind = 'status') => setCaptionState({ text, kind })
   const streamRef = useRef<MediaStream | null>(null)
+  // Read inside the loop, so changing the voice takes effect on the next frame without restarting the camera
+  const wantAudioRef = useRef(wantAudio)
+  wantAudioRef.current = wantAudio
 
   useEffect(() => {
     if (!isRunning) return
@@ -59,7 +64,7 @@ export function useVisionLoop({ videoRef, isRunning }: Options) {
         const res = await axios.post(
           `${API_BASE}/api/see`,
           // include_audio: the backend speaks the description too, so text and voice arrive together
-          { image, lang: language, include_audio: true },
+          { image, lang: language, include_audio: wantAudioRef.current },
           {
             signal: abort.signal,
             // Handle HTTP errors ourselves instead of having axios throw

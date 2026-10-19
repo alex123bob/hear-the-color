@@ -15,7 +15,7 @@ Live at <https://lijialab.com/hear-the-color/> (after you deploy, see below).
 | --- | --- | --- |
 | Frontend | this repo | Vite + React 18 + TypeScript, static build |
 | Backend | [`PP-AI-Service`](../PP-AI-Service) (sibling repo) | `POST /api/see`, see its [`docs/SEE_API.md`](../PP-AI-Service/docs/SEE_API.md) |
-| Voice | OpenAI TTS via `POST /api/speak` | Natural voice; falls back to the browser's built-in voice if the server can't produce audio |
+| Voice | OpenAI TTS (returned by `/api/see` with `include_audio`), or a built-in device voice | Picker at the top-left. The AI voice sounds most natural; a built-in voice is ~2 s faster and free. Falls back to a built-in voice if the server can't produce audio |
 
 **All backend changes belong in PP-AI-Service.** Architecture and design decisions: [docs/DESIGN.md](docs/DESIGN.md).
 
