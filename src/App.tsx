@@ -25,10 +25,9 @@ export default function App() {
       <h1 className={styles.srOnly}>Hear the Color</h1>
       <p className={styles.srOnly}>{t.intro}</p>
       <CameraView videoRef={videoRef} />
-      <div className={styles.top}>
+      {/* Start/Stop comes first in the DOM, so it is also first in Tab and screen-reader order */}
+      <div className={styles.topBar}>
         <ControlButton isRunning={isRunning} onToggle={() => setIsRunning((v) => !v)} />
-      </div>
-      <div className={styles.topLeft}>
         <VoiceSelect value={voice} onChange={setVoice} />
       </div>
       <Caption text={caption} kind={kind} />

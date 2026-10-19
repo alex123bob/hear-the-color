@@ -107,7 +107,7 @@ src/
 6. When `isRunning` becomes false or on unmount: the loop is cancelled (a pending wait is woken so it exits
    immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
-**Voice picker** (top-left, `VoiceSelect.tsx` + `lib/voices.ts`): "Natural voice (AI)" (OpenAI, the default) or
+**Voice picker** (top bar, `VoiceSelect.tsx` + `lib/voices.ts`): "Natural voice (AI)" (OpenAI, the default) or
 any built-in voice the device has for the current language. Built-in voices that usually sound natural are
 starred and listed first, guessed from their names (Apple "Enhanced/Premium" and voices like Samantha, Chrome's
 "Google ..." online voices, Edge "Natural/Neural"); browsers don't report quality, so it's a heuristic. The
@@ -141,7 +141,10 @@ silent utterance synchronously inside the Start tap. On iOS the ringer (silent) 
   pure-white scene that is about 10:1, still above WCAG AAA (7:1). Body text is 22px, the caption 26px.
 - The button is at least 56px tall. Labels: "Start Listening" / "Stop". Its `aria-label` describes function and
   result, e.g. "Start listening. The phone will describe the scene in front of you."
-- Layout: fullscreen camera, control button top-right, caption fixed at the bottom with 24px padding.
+- Layout: fullscreen camera, a top bar and the caption fixed at the bottom with 24px padding. On phones (up to
+  560px wide) the top bar stacks Start/Stop full-width on the first row with the voice picker below it; on wider
+  screens Start/Stop sits top-right and the picker top-left. Start/Stop comes first in the DOM, so it is also
+  first in Tab and screen-reader order.
 - Structure for screen readers: `<html lang="en">`, content in `<main role="main">`, a visually hidden `<h1>`
   and a one-line intro (`.srOnly`). The `<video>` is `aria-hidden` because it is purely visual.
 - Keyboard: the button is a native `<button>`, so it is Tab-reachable and works with Enter/Space; the default

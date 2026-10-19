@@ -23,10 +23,21 @@
   background: #000;
 }
 
-.top {
+.topBar {
   position: absolute;
   top: max(16px, env(safe-area-inset-top));
+  left: 16px;
   right: 16px;
+  display: flex;
+  /* row-reverse: Start/Stop sits at the right; when there isn't room, the voice picker wraps below it */
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.topBar > .button {
+  flex: 0 0 auto;
 }
 
 .button {
@@ -47,18 +58,18 @@
   outline-offset: 3px;
 }
 
-/* Voice picker, top-left, as large and high-contrast as the main button */
-.topLeft {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  left: 16px;
-  /* leave room for the Start/Stop button on narrow phones */
-  max-width: calc(100% - 140px - 48px);
+/* Voice picker, as large and high-contrast as the main button. It takes the remaining width next to the
+   button (at most 420px); 240px is the least it needs to stay readable, so below that it wraps to its own row */
+.voiceLabel {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
 }
 
 .voiceSelect {
   min-height: 56px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 420px;
   padding: 0 16px;
   font-size: 22px;
   font-weight: 600;
@@ -111,4 +122,15 @@
   font-size: 26px;
   line-height: 1.5;
   min-height: 1.5em;
+}
+
+/* Phones: Start/Stop gets the whole first row (biggest, easiest target), the voice picker the row below */
+@media (max-width: 560px) {
+  .topBar > .button {
+    flex: 1 1 100%;
+  }
+
+  .voiceSelect {
+    max-width: none;
+  }
 }
