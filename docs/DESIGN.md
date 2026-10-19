@@ -122,7 +122,9 @@ speech starts instantly (about 2 s faster, at the cost of a less natural voice).
    `GET /api/speak?text=...`. Either way the MP3 is played from a blob URL on one shared `<audio>` element. (Pointing `<audio src>` straight at the streamed response was tried; some browsers stayed
    silent with it, and it only saved ~0.3-1 s because OpenAI finishes a one-sentence clip about a second after
    its first bytes.) MP3 is kept on purpose: WAV/PCM are 5-10x larger, so they download more slowly.
-2. Playback runs at 1.5x (`PLAYBACK_RATE`, pitch preserved); the browser voice fallback at 1.4x.
+2. The AI voice plays at 1.5x (`PLAYBACK_RATE`, pitch preserved). Speeding it up in the browser rather than
+   with OpenAI's `speed` parameter is deliberate: generation is no faster either way (measured), and the rate
+   stays adjustable. Built-in voices play at normal speed (`BROWSER_RATE = 1.0`); they sound distorted sped up.
 3. If audio hasn't started within 15 s, or the request fails (network, OpenAI unreachable, quota, playback
    refused), it speaks with the browser voice instead (`SpeechSynthesisUtterance`, detected language,
    length-based timeout as a safety net). After 2 failures in a row it stops trying the server until the next
