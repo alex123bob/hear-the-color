@@ -2,9 +2,16 @@ import { API_BASE } from './api'
 import { language } from './i18n'
 
 // Speech comes from the backend (OpenAI TTS, natural voice) and is played through one <audio> element.
+// The element streams /api/speak directly (GET), so playback starts on the first chunk of audio instead of
+// after the whole file has been generated and downloaded.
 // If that fails (no network, blocked region, quota, autoplay refusal) we fall back to the robotic but
 // always-available browser voice, so the app never goes silent.
 
+// Playback speed of the natural voice. preservesPitch (default true) keeps it from sounding chipmunky.
+const PLAYBACK_RATE = 1.2
+// Same speed-up for the browser voice (its scale differs slightly, 1.0 is normal)
+const BROWSER_RATE = 1.15
+// How long we wait for audio to start playing before giving up on the server voice
 const SERVER_TTS_TIMEOUT_MS = 15000
 // After this many failures in a row, skip the server for the rest of the session (re-armed on Start)
 const MAX_SERVER_FAILURES = 2
@@ -12,8 +19,6 @@ const MAX_SERVER_FAILURES = 2
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='
 
 let audio: HTMLAudioElement | null = null
-let audioUrl: string | null = null
-let controller: AbortController | null = null
 let serverFailures = 0
 // Resolves the speak() currently in progress, so stopSpeaking() can end it immediately
 let finishCurrent: (() => void) | null = null
@@ -57,7 +62,7 @@ function speakWithBrowser(text: string): Promise<void> {
 
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = language
-    utterance.rate = 1.05
+    utterance.rate = BROWSER_RATE
     const voice = pickVoice()
     if (voice) utterance.voice = voice
 
@@ -76,35 +81,49 @@ function speakWithBrowser(text: string): Promise<void> {
   })
 }
 
-// Play an MP3 on the shared element; rejects if playback cannot start or fails
-function playAudio(blob: Blob): Promise<void> {
+// Stream speech from the server on the shared element. Resolves when it has finished (or was stopped);
+// rejects if it can't start in time or fails before any audio played, so the caller can fall back.
+function playFromServer(text: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!audio) audio = new Audio()
     const el = audio
-    if (audioUrl) URL.revokeObjectURL(audioUrl)
-    audioUrl = URL.createObjectURL(blob)
+    let started = false
 
-    function done() {
+    const cleanup = () => {
+      window.clearTimeout(timer)
+      el.onplaying = null
       el.onended = null
       el.onerror = null
-      if (finishCurrent === done) finishCurrent = null
+      if (finishCurrent === finish) finishCurrent = null
+    }
+    function finish() {
+      cleanup()
       resolve()
     }
-    finishCurrent = done
-    el.onended = done
-    el.onerror = () => {
-      el.onended = null
-      el.onerror = null
-      if (finishCurrent === done) finishCurrent = null
-      reject(new Error('audio playback failed'))
+    const fail = (err: unknown) => {
+      cleanup()
+      el.removeAttribute('src')
+      el.load()
+      // Audio already played (e.g. the stream broke near the end): treat it as done, don't repeat it
+      if (started) resolve()
+      else reject(err)
     }
-    el.src = audioUrl
-    el.play().catch((err) => {
-      el.onended = null
-      el.onerror = null
-      if (finishCurrent === done) finishCurrent = null
-      reject(err)
-    })
+    const timer = window.setTimeout(() => fail(new Error('speech did not start in time')), SERVER_TTS_TIMEOUT_MS)
+
+    finishCurrent = finish
+    el.onplaying = () => {
+      started = true
+      window.clearTimeout(timer)
+    }
+    el.onended = finish
+    // Also fires for HTTP errors (e.g. 500/429), since the element can't decode a JSON error body
+    el.onerror = () => fail(new Error('audio playback failed'))
+
+    // Loading a new source resets playbackRate to defaultPlaybackRate, so set both
+    el.defaultPlaybackRate = PLAYBACK_RATE
+    el.src = `${API_BASE}/api/speak?text=${encodeURIComponent(text)}`
+    el.playbackRate = PLAYBACK_RATE
+    el.play().catch(fail)
   })
 }
 
@@ -113,34 +132,13 @@ export async function speak(text: string): Promise<void> {
   stopSpeaking()
 
   if (serverFailures < MAX_SERVER_FAILURES) {
-    const ctrl = new AbortController()
-    controller = ctrl
-    let timedOut = false
-    const timer = window.setTimeout(() => {
-      timedOut = true
-      ctrl.abort()
-    }, SERVER_TTS_TIMEOUT_MS)
+    // stopSpeaking() resolves this promise, so a Stop never falls through to the browser voice
     try {
-      const res = await fetch(`${API_BASE}/api/speak`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-        signal: ctrl.signal,
-      })
-      if (!res.ok) throw new Error(`speak failed: ${res.status}`)
-      const blob = await res.blob()
-      window.clearTimeout(timer)
-      if (ctrl.signal.aborted) return
-      await playAudio(blob)
+      await playFromServer(text)
       serverFailures = 0
       return
     } catch {
-      window.clearTimeout(timer)
-      // Stopped by the user (not by our timeout): stay silent
-      if (ctrl.signal.aborted && !timedOut) return
       serverFailures += 1
-    } finally {
-      if (controller === ctrl) controller = null
     }
   }
 
@@ -148,9 +146,12 @@ export async function speak(text: string): Promise<void> {
 }
 
 export function stopSpeaking() {
-  controller?.abort()
-  controller = null
-  if (audio) audio.pause()
+  if (audio) {
+    audio.pause()
+    // Dropping the source also closes the streaming request
+    audio.removeAttribute('src')
+    audio.load()
+  }
   if ('speechSynthesis' in window) window.speechSynthesis.cancel()
   // Release a pending speak() promise
   const finish = finishCurrent

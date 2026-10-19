@@ -107,11 +107,16 @@ src/
    immediately), all tracks are stopped and speech is cancelled. A `cancelled` flag guards async callbacks.
 
 `speak.ts`: `speak(text)` returns a Promise that resolves when playback has finished or was stopped.
-1. It POSTs the text to `/api/speak` (15 s timeout) and plays the returned MP3 on one shared `<audio>` element.
-2. If that fails (network, OpenAI unreachable, quota, playback refused) it speaks with the browser voice
-   (`SpeechSynthesisUtterance`, detected language, `rate = 1.05`, length-based timeout as a safety net).
-   After 2 failures in a row it stops trying the server until the next Start, so the loop isn't slowed down.
-3. `stopSpeaking()` aborts the request, pauses the audio, cancels browser speech and releases the waiting loop.
+1. It points one shared `<audio>` element at `GET /api/speak?text=...`. The backend streams OpenAI's MP3 as it
+   is generated, so playback starts on the first chunks instead of after the whole file is made and downloaded.
+   MP3 is kept on purpose: it streams in every browser, while WAV/PCM are 5-10x larger and stream poorly.
+2. Playback runs at 1.2x (`PLAYBACK_RATE`, pitch preserved); the browser voice fallback at 1.15x.
+3. If audio hasn't started within 15 s, or the request fails (network, OpenAI unreachable, quota, playback
+   refused), it speaks with the browser voice instead (`SpeechSynthesisUtterance`, detected language,
+   length-based timeout as a safety net). After 2 failures in a row it stops trying the server until the next
+   Start, so the loop isn't slowed down.
+4. `stopSpeaking()` pauses the audio, drops its source (closing the stream), cancels browser speech and
+   releases the waiting loop.
 
 Mobile autoplay: browsers only allow audio started from a user gesture, but the first description arrives
 after network calls. `unlockSpeech()` therefore plays a silent clip on the shared `<audio>` element and a
