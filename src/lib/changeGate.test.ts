@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { CHANGE_THRESHOLD, FORCE_REFRESH_MS, isSpeakable, shouldDescribe } from './changeGate'
+import {
+  CHANGE_THRESHOLD,
+  FORCE_REFRESH_MS,
+  MIN_REQUEST_GAP_MS,
+  isForcedRefresh,
+  isSpeakable,
+  msUntilNextRequest,
+  shouldDescribe,
+  updateScene,
+} from './changeGate'
 
 describe('shouldDescribe', () => {
   it('skips a barely changed scene', () => {
@@ -29,5 +38,37 @@ describe('isSpeakable', () => {
   })
   it('does not speak an unchanged reply', () => {
     expect(isSpeakable({ text: '', changed: false })).toBe(false)
+  })
+})
+
+describe('request pacing', () => {
+  it('waits out the rest of the minimum gap between requests', () => {
+    expect(MIN_REQUEST_GAP_MS).toBe(3000)
+    expect(msUntilNextRequest(1000, 2000)).toBe(2000)
+    expect(msUntilNextRequest(1000, 4000)).toBe(0)
+    expect(msUntilNextRequest(1000, 9000)).toBe(0)
+  })
+})
+
+describe('forced refresh', () => {
+  it('is a refresh only once 45 seconds have passed', () => {
+    expect(isForcedRefresh(44999)).toBe(false)
+    expect(isForcedRefresh(45000)).toBe(true)
+  })
+})
+
+describe('updateScene', () => {
+  it('uses a full description as the scene', () => {
+    expect(updateScene('', { text: 'A red mug on a desk.' })).toBe('A red mug on a desk.')
+  })
+  it('appends a change to the scene so earlier objects are remembered', () => {
+    const scene = updateScene('A red mug on a desk.', { text: 'A person stands on your left.', changed: true })
+    expect(scene).toContain('red mug')
+    expect(scene).toContain('person')
+  })
+  it('keeps only the most recent 300 characters', () => {
+    const scene = updateScene('a'.repeat(290), { text: 'b'.repeat(50), changed: true })
+    expect(scene.length).toBe(300)
+    expect(scene.endsWith('b'.repeat(50))).toBe(true)
   })
 })

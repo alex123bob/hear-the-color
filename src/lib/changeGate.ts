@@ -19,3 +19,25 @@ export interface Reply {
 export function isSpeakable(r: Reply): boolean {
   return r.changed !== false
 }
+
+// The backend allows 20 requests a minute per IP; never ask more often than one per 3 s
+export const MIN_REQUEST_GAP_MS = 3000
+
+// How long to wait before the next /api/see call, given when the last one was sent
+export function msUntilNextRequest(lastRequestAt: number, now: number): number {
+  return Math.max(0, MIN_REQUEST_GAP_MS - (now - lastRequestAt))
+}
+
+export function isForcedRefresh(msSinceLastDescription: number): boolean {
+  return msSinceLastDescription >= FORCE_REFRESH_MS
+}
+
+// What the listener knows about the scene, sent as `previous`. A change sentence is only a delta, so it is
+// appended to the earlier knowledge (the newest 300 characters, the backend's limit) instead of replacing it;
+// otherwise the model forgets the static objects and reports them as new again.
+const MAX_SCENE_CHARS = 300
+
+export function updateScene(scene: string, reply: Reply): string {
+  const next = reply.changed === true && scene ? `${scene} ${reply.text}` : reply.text
+  return next.slice(-MAX_SCENE_CHARS)
+}

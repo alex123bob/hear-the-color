@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SOUND_DEFAULT, loadSoundMode, saveSoundMode } from './soundMode'
+import { SOUND_DEFAULT, canDescribe, loadSoundMode, saveSoundMode } from './soundMode'
 
 const stubStorage = (store: Record<string, string>) =>
   vi.stubGlobal('localStorage', {
@@ -41,5 +41,13 @@ describe('sound mode storage', () => {
     stubStorage({})
     saveSoundMode('tones')
     expect(loadSoundMode()).toBe('tones')
+  })
+})
+
+describe('describing is allowed per mode', () => {
+  it('is off only in tones mode', () => {
+    expect(canDescribe('tones')).toBe(false)
+    expect(canDescribe('both')).toBe(true)
+    expect(canDescribe('describe')).toBe(true)
   })
 })

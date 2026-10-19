@@ -24,3 +24,8 @@ export function saveSoundMode(mode: SoundMode) {
     // Private mode or blocked storage: the choice still applies for this session
   }
 }
+
+// Tones-only mode makes no AI calls and no speech
+export function canDescribe(mode: SoundMode): boolean {
+  return mode !== 'tones'
+}

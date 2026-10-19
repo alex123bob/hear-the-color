@@ -5,8 +5,15 @@ import { audioFromBase64, speak, stopSpeaking } from '../lib/speak'
 import { language, t } from '../lib/i18n'
 import { API_BASE } from '../lib/api'
 import { frameDifference, sampleZones, samplePixels } from '../lib/colorSense'
-import { isSpeakable, shouldDescribe, type Reply } from '../lib/changeGate'
-import type { SoundMode } from '../lib/soundMode'
+import {
+  isForcedRefresh,
+  isSpeakable,
+  msUntilNextRequest,
+  shouldDescribe,
+  updateScene,
+  type Reply,
+} from '../lib/changeGate'
+import { canDescribe, type SoundMode } from '../lib/soundMode'
 import { duck, startTones, stopTones, updateTones } from '../lib/tones'
 
 // Pause after the description has been spoken, before looking again
@@ -174,7 +181,9 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
       // against this reference. They change only after a successful, spoken description.
       let referencePixels: Uint8ClampedArray | null = null
       let lastDescribedAt = Date.now()
-      let lastSpoken: string | null = null
+      // What the listener knows about the scene (full description plus later changes), sent as `previous`
+      let scene = ''
+      let lastRequestAt = 0
       while (!cancelled) {
         if (soundModeRef.current === 'tones') {
           // No AI calls and no speech: the tones are the whole experience
@@ -200,10 +209,25 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
             continue
           }
         }
+        // The backend allows 20 requests a minute: keep a floor between calls, however jittery the camera is
+        const gap = msUntilNextRequest(lastRequestAt, Date.now())
+        if (gap > 0) {
+          await sleep(gap)
+          continue
+        }
         await explainTones()
         if (cancelled) return
-        const result = await describe(image, lastSpoken)
+        // The mode may have been switched to tones-only while the explanation played
+        if (!canDescribe(soundModeRef.current)) continue
+        // After a long quiet spell ask without `previous`, so the scene is described afresh instead of silently
+        const forced = isForcedRefresh(Date.now() - lastDescribedAt)
+        // Capture after the explanation, so the frame we send is what the camera sees now
+        const fresh = video ? captureFrame(video) : null
+        lastRequestAt = Date.now()
+        const result = await describe(fresh ?? image, forced ? null : scene || null)
         if (cancelled) return
+        // Switched to tones-only while the request was in flight: drop the answer, no caption, no speech
+        if (!canDescribe(soundModeRef.current)) continue
         if (result && !isSpeakable(result)) {
           // The AI says nothing new: stay quiet. The view looks different but means the same, so take it as the
           // new pixel reference (else we would re-ask every pass and hit the rate limit). lastSpoken stays,
@@ -214,7 +238,7 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Opt
         } else if (result) {
           referencePixels = pixels
           lastDescribedAt = Date.now()
-          lastSpoken = result.text
+          scene = forced ? result.text : updateScene(scene, result)
           // Caption and voice start together: the audio is already here, so playback begins right away
           setCaption(result.text, 'result')
           // Tones dip while the sentence is spoken; the finally means a cancelled speech can't leave them low
