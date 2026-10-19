@@ -1,5 +1,6 @@
 import styles from '../App.module.css'
 import { unlockSpeech } from '../lib/speak'
+import { unlockTones } from '../lib/tones'
 import { t } from '../lib/i18n'
 
 interface Props {
@@ -12,7 +13,10 @@ export default function ControlButton({ isRunning, onToggle }: Props) {
     // Haptic feedback; navigator.vibrate is missing on iOS Safari, so guard it
     if ('vibrate' in navigator) navigator.vibrate(50)
     // Must happen inside this tap, or mobile browsers will block the spoken description later
-    if (!isRunning) unlockSpeech()
+    if (!isRunning) {
+      unlockSpeech()
+      unlockTones()
+    }
     onToggle()
   }
 

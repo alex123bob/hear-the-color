@@ -4,6 +4,9 @@ import { captureFrame } from '../lib/capture'
 import { audioFromBase64, speak, stopSpeaking } from '../lib/speak'
 import { language, t } from '../lib/i18n'
 import { API_BASE } from '../lib/api'
+import { sampleZones } from '../lib/colorSense'
+import type { SoundMode } from '../lib/soundMode'
+import { duck, startTones, stopTones, updateTones } from '../lib/tones'
 
 // Pause after the description has been spoken, before looking again
 const PAUSE_AFTER_SPEECH_MS = 500
@@ -13,6 +16,28 @@ const RETRY_DELAY_MS = 4000
 const NO_FRAME_DELAY_MS = 300
 // Shown if the AI is still working this long after the upload finished
 const STILL_WORKING_AFTER_MS = 8000
+// How often the camera colors are turned into tones
+const TONE_UPDATE_MS = 100
+// Idle check interval while in tones-only mode, so a switch to a describing mode is noticed quickly
+const TONES_ONLY_IDLE_MS = 300
+// Set once the spoken explanation of the tones has been heard on this device
+const TONE_INTRO_KEY = 'htc.toneIntroSeen'
+
+function toneIntroSeen(): boolean {
+  try {
+    return localStorage.getItem(TONE_INTRO_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markToneIntroSeen() {
+  try {
+    localStorage.setItem(TONE_INTRO_KEY, '1')
+  } catch {
+    // Blocked storage: it will be explained again next time
+  }
+}
 
 export type CaptionKind = 'status' | 'result' | 'error'
 
@@ -21,9 +46,10 @@ interface Options {
   isRunning: boolean
   // Ask the backend for spoken audio along with the description (only needed for the AI voice)
   wantAudio: boolean
+  soundMode: SoundMode
 }
 
-export function useVisionLoop({ videoRef, isRunning, wantAudio }: Options) {
+export function useVisionLoop({ videoRef, isRunning, wantAudio, soundMode }: Options) {
   // kind: 'result' is the AI description (spoken); 'status' and 'error' are shown only, never spoken
   const [caption, setCaptionState] = useState<{ text: string; kind: CaptionKind }>({
     text: '',
@@ -34,6 +60,26 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio }: Options) {
   // Read inside the loop, so changing the voice takes effect on the next frame without restarting the camera
   const wantAudioRef = useRef(wantAudio)
   wantAudioRef.current = wantAudio
+  // Same for the sound mode: a live switch applies on the next loop pass
+  const soundModeRef = useRef(soundMode)
+  soundModeRef.current = soundMode
+  const tonesOn = soundMode !== 'describe'
+
+  // Color tones: sample the camera ~10x a second while running. A separate effect from the describe loop, so
+  // switching the mode starts or stops the tones at once without restarting the camera.
+  useEffect(() => {
+    if (!isRunning || !tonesOn) return
+    startTones()
+    const timer = window.setInterval(() => {
+      const video = videoRef.current
+      const zones = video ? sampleZones(video) : null
+      if (zones) updateTones(zones)
+    }, TONE_UPDATE_MS)
+    return () => {
+      window.clearInterval(timer)
+      stopTones()
+    }
+  }, [isRunning, tonesOn, videoRef])
 
   useEffect(() => {
     if (!isRunning) return
@@ -100,22 +146,55 @@ export function useVisionLoop({ videoRef, isRunning, wantAudio }: Options) {
       return null
     }
 
+    // Once per device, in the mode that plays tones, say what the tones mean before the first description
+    const explainTones = async () => {
+      if (soundModeRef.current !== 'both' || toneIntroSeen()) return
+      setCaption(t.toneIntro)
+      duck(true)
+      try {
+        await speak(t.toneIntro)
+      } finally {
+        duck(false)
+      }
+      if (!cancelled) markToneIntroSeen()
+    }
+
     // Sequential loop: look -> describe -> speak until finished -> pause -> look again.
     // The next frame is only captured after the previous description has been read out.
     const loop = async () => {
+      // Tones-only mode shows the explanation once per pass in that mode
+      let tonesCaptionShown = false
       while (!cancelled) {
+        if (soundModeRef.current === 'tones') {
+          // No AI calls and no speech: the tones are the whole experience
+          if (!tonesCaptionShown) {
+            setCaption(t.toneIntro)
+            tonesCaptionShown = true
+          }
+          await sleep(TONES_ONLY_IDLE_MS)
+          continue
+        }
+        tonesCaptionShown = false
         const video = videoRef.current
         const image = video ? captureFrame(video) : null
         if (!image) {
           await sleep(NO_FRAME_DELAY_MS)
           continue
         }
+        await explainTones()
+        if (cancelled) return
         const result = await describe(image)
         if (cancelled) return
         if (result) {
           // Caption and voice start together: the audio is already here, so playback begins right away
           setCaption(result.text, 'result')
-          await speak(result.text, result.audio)
+          // Tones dip while the sentence is spoken; the finally means a cancelled speech can't leave them low
+          duck(true)
+          try {
+            await speak(result.text, result.audio)
+          } finally {
+            duck(false)
+          }
           await sleep(PAUSE_AFTER_SPEECH_MS)
         } else {
           await sleep(RETRY_DELAY_MS)

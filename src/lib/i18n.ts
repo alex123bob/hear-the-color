@@ -18,6 +18,11 @@ export interface Messages {
   intro: string
   voiceLabel: string
   voiceAi: string
+  soundLabel: string
+  soundDescribe: string
+  soundBoth: string
+  soundTones: string
+  toneIntro: string
 }
 
 const en: Messages = {
@@ -28,6 +33,12 @@ const en: Messages = {
   idle: 'Tap "Start Listening" at the bottom of the screen',
   voiceLabel: 'Voice',
   voiceAi: 'Natural voice (AI)',
+  soundLabel: 'Sound',
+  soundDescribe: 'Voice only',
+  soundBoth: 'Voice and tones',
+  soundTones: 'Tones only',
+  toneIntro:
+    'Listen for the tones: pitch is the color, volume is the brightness, and left or right is where it is.',
   cameraStarting: 'Starting the camera...',
   sending: 'Sending the photo...',
   analyzing: 'The AI is looking at the scene...',
@@ -49,6 +60,12 @@ const MESSAGES: Record<string, Messages> = {
     idle: '点击屏幕底部的“开始聆听”',
     voiceLabel: '声音',
     voiceAi: '自然人声（AI）',
+    soundLabel: '声音模式',
+    soundDescribe: '仅语音',
+    soundBoth: '语音加音调',
+    soundTones: '仅音调',
+    toneIntro:
+      '请留意音调：音高代表颜色，音量代表亮度，左右声道代表方位。',
     cameraStarting: '正在打开摄像头……',
     sending: '正在发送照片……',
     analyzing: 'AI 正在观察场景……',
@@ -66,6 +83,12 @@ const MESSAGES: Record<string, Messages> = {
     idle: 'Toca "Empezar a escuchar" en la parte inferior',
     voiceLabel: 'Voz',
     voiceAi: 'Voz natural (IA)',
+    soundLabel: 'Sonido',
+    soundDescribe: 'Solo voz',
+    soundBoth: 'Voz y tonos',
+    soundTones: 'Solo tonos',
+    toneIntro:
+      'Escucha los tonos: el tono es el color, el volumen es el brillo y izquierda o derecha es dónde está.',
     cameraStarting: 'Iniciando la cámara...',
     sending: 'Enviando la foto...',
     analyzing: 'La IA está mirando la escena...',
@@ -84,6 +107,12 @@ const MESSAGES: Record<string, Messages> = {
     idle: 'Touchez « Commencer à écouter » en bas de l’écran',
     voiceLabel: 'Voix',
     voiceAi: 'Voix naturelle (IA)',
+    soundLabel: 'Son',
+    soundDescribe: 'Voix seule',
+    soundBoth: 'Voix et tons',
+    soundTones: 'Tons seuls',
+    toneIntro:
+      'Écoutez les tons : la hauteur est la couleur, le volume est la luminosité, et gauche ou droite indique où c’est.',
     cameraStarting: 'Démarrage de la caméra...',
     sending: 'Envoi de la photo...',
     analyzing: 'L’IA observe la scène...',
@@ -102,6 +131,12 @@ const MESSAGES: Record<string, Messages> = {
     idle: '画面下の「聞き始める」をタップしてください',
     voiceLabel: '音声',
     voiceAi: '自然な声（AI）',
+    soundLabel: 'サウンド',
+    soundDescribe: '音声のみ',
+    soundBoth: '音声と音色',
+    soundTones: '音色のみ',
+    toneIntro:
+      '音色に耳を澄ませてください。音の高さは色、音量は明るさ、左右は位置を表します。',
     cameraStarting: 'カメラを起動しています……',
     sending: '写真を送信しています……',
     analyzing: 'AIが情景を見ています……',
